@@ -1,0 +1,140 @@
+{% extends "shared/base.html" %}
+
+{% block title %}OTP Verification - PUP AI Reservation System{% endblock %}
+
+{% block content %}
+<div class="login-card-container animated-fade-in">
+    <div class="login-card text-start">
+        <h2 class="login-header-title text-center">OTP Verification</h2>
+        <p class="login-header-subtitle text-center">We sent a secure One-Time Password to your PUP Webmail.</p>
+        
+        {% if error_msg %}
+            <div class="alert alert-danger text-center py-2" style="font-size: 13px;" id="error-alert">
+                <i class="fa-solid fa-circle-exclamation me-1"></i> {{ error_msg }}
+            </div>
+        {% endif %}
+
+        <!-- Timer/Expiration Indicator -->
+        <div class="alert alert-warning text-center py-2 mb-4 d-flex justify-content-between align-items-center" style="font-size: 13px;" id="otp-timer-alert">
+            <span><i class="fa-regular fa-clock me-1"></i> Code expires in:</span>
+            <span id="countdown-timer" class="fw-bold fs-6 text-maroon">05:00</span>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.verify_otp') }}" id="otp-form">
+            {{ form.csrf_token }}
+            
+            <!-- OTP Input -->
+            <div class="pup-form-group mb-4">
+                <label class="pup-form-label" for="otp_code">Enter 6-Digit OTP</label>
+                <div class="pup-input-wrapper">
+                    <input type="text" id="otp_code" name="otp_code" class="pup-input text-center fs-4 fw-bold letter-spacing-md" placeholder="••••••" maxlength="6" pattern="\d{6}" autocomplete="one-time-code" required>
+                </div>
+                <div class="form-text text-muted text-center mt-2" style="font-size: 11px;">
+                    Please enter the 6-digit verification code sent to your email.
+                </div>
+            </div>
+            
+            <!-- Verify Submit Button -->
+            <div class="mt-4">
+                <button type="submit" id="verify-submit-btn" class="btn btn-pup-primary w-100 py-3" style="background-color: maroon !important; border-color: maroon !important;">
+                    Verify OTP
+                </button>
+            </div>
+        </form>
+
+        <!-- Resend OTP Form (POST Method) -->
+        <form method="POST" action="{{ url_for('auth.resend_otp') }}" id="resend-form" class="mt-3 text-center">
+            {{ form.csrf_token }}
+            <span class="text-muted" style="font-size: 12px;">Didn't receive the code?</span>
+            <button type="submit" id="resend-btn" class="btn btn-link text-maroon p-0 border-0 fw-semibold text-decoration-none" style="font-size: 12px; cursor: pointer;" disabled>
+                Resend OTP <span id="resend-timer-txt">(Wait 30s)</span>
+            </button>
+        </form>
+
+        <div class="text-center mt-4 pt-2 border-top">
+            <a href="{{ url_for('auth.login') }}" class="text-decoration-none fw-semibold text-muted" style="font-size: 12px;">
+                <i class="fa-solid fa-arrow-left me-1"></i> Cancel
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.letter-spacing-md {
+    letter-spacing: 6px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Expiration Countdown (5 minutes)
+        const countdownElement = document.getElementById('countdown-timer');
+        const verifySubmitBtn = document.getElementById('verify-submit-btn');
+        const timerAlert = document.getElementById('otp-timer-alert');
+        const otpInput = document.getElementById('otp_code');
+        
+        let secondsRemaining = 300; // 5 minutes
+        
+        function updateCountdown() {
+            const minutes = Math.floor(secondsRemaining / 60);
+            const seconds = secondsRemaining % 60;
+            const formattedMinutes = String(minutes).padStart(2, '0');
+            const formattedSeconds = String(seconds).padStart(2, '0');
+            
+            countdownElement.textContent = `${formattedMinutes}:${formattedSeconds}`;
+            
+            if (secondsRemaining <= 0) {
+                clearInterval(countdownInterval);
+                countdownElement.textContent = "EXPIRED";
+                timerAlert.classList.remove('alert-warning');
+                timerAlert.classList.add('alert-danger');
+                verifySubmitBtn.disabled = true;
+                otpInput.disabled = true;
+            } else {
+                secondsRemaining--;
+            }
+        }
+        
+        updateCountdown();
+        const countdownInterval = setInterval(updateCountdown, 1000);
+        
+        // Resend Button Cool-down (30 seconds)
+        const resendBtn = document.getElementById('resend-btn');
+        const resendTimerTxt = document.getElementById('resend-timer-txt');
+        let resendSeconds = 30;
+        
+        function updateResendCooldown() {
+            if (resendSeconds <= 0) {
+                clearInterval(resendInterval);
+                resendBtn.disabled = false;
+                resendTimerTxt.textContent = "";
+            } else {
+                resendTimerTxt.textContent = `(Wait ${resendSeconds}s)`;
+                resendSeconds--;
+            }
+        }
+        
+        updateResendCooldown();
+        const resendInterval = setInterval(updateResendCooldown, 1000);
+        
+        // Form Loading feedback
+        const otpForm = document.getElementById('otp-form');
+        if (otpForm) {
+            otpForm.addEventListener('submit', () => {
+                verifySubmitBtn.disabled = true;
+                verifySubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Verifying...';
+            });
+        }
+        
+        const resendForm = document.getElementById('resend-form');
+        if (resendForm) {
+            resendForm.addEventListener('submit', () => {
+                resendBtn.disabled = true;
+                resendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Resending...';
+            });
+        }
+    });
+</script>
+{% endblock %}

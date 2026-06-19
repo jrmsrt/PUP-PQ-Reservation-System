@@ -1,0 +1,188 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Student Dashboard - PUP Reservation{% endblock %}
+
+{% block content %}
+<div class="container py-4 animated-fade-in">
+    <!-- Student Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">Mabuhay, {{ current_user.first_name }}!</h2>
+            <p class="text-muted mb-0 small">Manage your facility and projector reservations below.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('student.reserve') }}" class="btn btn-pup-primary">
+                <i class="fa-solid fa-plus me-2"></i>New Reservation
+            </a>
+            <a href="{{ url_for('student.export_pdf') }}" class="btn btn-pup-secondary text-dark border-secondary">
+                <i class="fa-solid fa-file-pdf me-2"></i>Export History
+            </a>
+        </div>
+    </div>
+
+    {% if not current_user.password_changed %}
+    <div class="alert alert-warning text-start mb-4 py-3" style="border-radius: 12px; border-left: 4px solid #D97706;">
+        <h5 class="fw-bold mb-1"><i class="fa-solid fa-triangle-exclamation me-2"></i>You are still using the default password.</h5>
+        For your security, please change your password from <a href="{{ url_for('student.profile') }}" class="alert-link">Account Settings</a>.
+    </div>
+    {% endif %}
+
+    <!-- Analytics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Total Requests</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val">{{ total }}</div>
+                    <div class="feature-icon-box m-0" style="background: #F3F4F6; color: #475569; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Pending Approval</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val text-warning">{{ pending }}</div>
+                    <div class="feature-icon-box m-0" style="background: #FFFBEB; color: #D97706; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Approved Bookings</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val text-success">{{ approved }}</div>
+                    <div class="feature-icon-box m-0" style="background: #ECFDF5; color: #059669; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Rejected Requests</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val text-danger">{{ rejected }}</div>
+                    <div class="feature-icon-box m-0" style="background: #FEF2F2; color: #DC2626; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Navigation Icons -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <a href="{{ url_for('student.reserve') }}" class="text-decoration-none">
+                <div class="feature-card text-start border-0 shadow-sm" style="background: #FFFFFF;">
+                    <div class="feature-icon-box" style="background: #FEF2F2; color: #8B0000;">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Reserve Facility</h5>
+                    <p class="text-muted small mb-0">Create new requests for Audio-Visual Rooms, Computer labs, HM labs, or classrooms projectors.</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('student.status') }}" class="text-decoration-none">
+                <div class="feature-card text-start border-0 shadow-sm" style="background: #FFFFFF;">
+                    <div class="feature-icon-box" style="background: #FFFBEB; color: #D97706;">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">Availability & Status</h5>
+                    <p class="text-muted small mb-0">Monitor the progress of your submitted reservations and filter schedules by date or status.</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('student.history') }}" class="text-decoration-none">
+                <div class="feature-card text-start border-0 shadow-sm" style="background: #FFFFFF;">
+                    <div class="feature-icon-box" style="background: #E0F2FE; color: #0284C7;">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark">History Log</h5>
+                    <p class="text-muted small mb-0">View all past reservation records, search subject details, and export summary data to PDF.</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Bookings Table -->
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body p-4 text-start">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list me-2 text-maroon"></i>Recent Reservation Requests</h5>
+            {% if recent %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-3">ID</th>
+                                <th class="py-3">Facility Type</th>
+                                <th class="py-3">Room / Resource</th>
+                                <th class="py-3">Date</th>
+                                <th class="py-3">Time</th>
+                                <th class="py-3">Status</th>
+                                <th class="py-3 text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in recent %}
+                                <tr>
+                                    <td class="fw-bold text-slate">#{{ r.id }}</td>
+                                    <td>{{ r.facility_type }}</td>
+                                    <td>
+                                        {% if r.facility %}
+                                            <span class="badge bg-secondary">{{ r.facility.code }}</span>
+                                        {% elif r.projector %}
+                                            <span class="badge bg-info text-dark">{{ r.projector.code }}</span>
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ r.schedule_date.strftime('%b %d, %Y') }}</td>
+                                    <td class="small">{{ r.start_time.strftime('%I:%M %p') }} - {{ r.end_time.strftime('%I:%M %p') }}</td>
+                                    <td>
+                                        {% if r.status == 'PENDING APPROVAL' %}
+                                            <span class="badge-status badge-pending">Pending</span>
+                                        {% elif r.status == 'APPROVED' %}
+                                            <span class="badge-status badge-approved">Approved</span>
+                                        {% elif r.status == 'REJECTED' %}
+                                            <span class="badge-status badge-rejected">Rejected</span>
+                                        {% elif r.status == 'COMPLETED' %}
+                                            <span class="badge-status badge-completed">Completed</span>
+                                        {% elif r.status == 'CANCELLED' %}
+                                            <span class="badge-status badge-cancelled">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if r.status == 'PENDING APPROVAL' %}
+                                            <form action="{{ url_for('student.cancel', id=r.id) }}" method="POST" class="d-inline" data-confirm-title="Cancel Pending Request?" data-confirm-message="Are you sure you want to cancel this pending reservation request?" data-confirm-button="Cancel Request" data-confirm-button-class="btn btn-danger px-4">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px;">
+                                                    <i class="fa-solid fa-xmark me-1"></i>Cancel
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-muted small">None</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">You have not submitted any reservations yet.</p>
+                    <a href="{{ url_for('student.reserve') }}" class="btn btn-sm btn-pup-primary mt-3">Create First Reservation</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

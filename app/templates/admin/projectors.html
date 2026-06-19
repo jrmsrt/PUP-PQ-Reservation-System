@@ -1,0 +1,115 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}Projector Fleet Management - PUP Reservation{% endblock %}
+
+{% set active_page = 'projectors' %}
+
+{% block admin_content %}
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">Projector Fleet Management</h2>
+            <p class="text-muted mb-0 small">Manage classroom projector units, flag maintenance, and update models.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4 text-start">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 16px;">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-circle-plus text-maroon me-2"></i>Register Projector</h5>
+
+                <form method="POST" action="{{ url_for('admin.projectors') }}">
+                    {{ form.csrf_token }}
+
+                    <div class="pup-form-group">
+                        <label class="pup-form-label" for="code">Projector Code</label>
+                        <input type="text" id="code" name="code" class="pup-input" placeholder="e.g., PJ-011" required>
+                    </div>
+
+                    <div class="pup-form-group">
+                        <label class="pup-form-label" for="model">Model Specification</label>
+                        <input type="text" id="model" name="model" class="pup-input" placeholder="e.g., Epson PowerLite X49" required>
+                    </div>
+
+                    <div class="pup-form-group">
+                        <label class="pup-form-label" for="status">Initial Status</label>
+                        <select id="status" name="status" class="pup-input" style="padding: 0 15px;" required>
+                            <option value="Available">Available</option>
+                            <option value="Under Maintenance">Under Maintenance</option>
+                            <option value="Unavailable">Unavailable</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-pup-primary w-100 py-3 mt-3">
+                        <i class="fa-solid fa-save me-2"></i>Save Projector
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-8 text-start">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 16px;">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-video text-maroon me-2"></i>Projector Inventory Fleet</h5>
+
+                {% if projectors %}
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="py-3">Code</th>
+                                    <th class="py-3">Model</th>
+                                    <th class="py-3">Status</th>
+                                    <th class="py-3 text-end">Update Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in projectors %}
+                                    <tr>
+                                        <td class="fw-bold text-dark">{{ p.code }}</td>
+                                        <td>{{ p.model }}</td>
+                                        <td>
+                                            {% if p.status == 'Available' %}
+                                                <span class="badge bg-success">🟢 Available</span>
+                                            {% elif p.status == 'Reserved' %}
+                                                <span class="badge bg-danger">🔴 Unavailable (Reserved)</span>
+                                            {% elif p.status == 'Checked Out' %}
+                                                <span class="badge bg-danger">Checked Out</span>
+                                            {% elif p.status == 'Overdue' %}
+                                                <span class="badge bg-danger">Overdue</span>
+                                            {% elif p.status == 'Under Maintenance' %}
+                                                <span class="badge bg-warning text-dark">🟡 Under Maintenance</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">🔴 Unavailable</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <form action="{{ url_for('admin.update_projector_status', id=p.id) }}" method="POST" class="d-inline-flex gap-2 align-items-center justify-content-end w-100">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                {% if p.status in ['Reserved', 'Checked Out', 'Overdue'] %}
+                                                    <select name="status" class="form-select form-select-sm py-1 border-secondary bg-light text-muted" style="width: 190px; border-radius: 6px; cursor: not-allowed;" disabled>
+                                                        <option value="{{ p.status }}" selected>{{ p.status }}</option>
+                                                    </select>
+                                                {% else %}
+                                                    <select name="status" class="form-select form-select-sm py-1 border-secondary" style="width: 160px; border-radius: 6px; cursor: pointer;" onchange="this.form.submit()">
+                                                        <option value="Available" {% if p.status == 'Available' %}selected{% endif %}>Available</option>
+                                                        <option value="Under Maintenance" {% if p.status == 'Under Maintenance' %}selected{% endif %}>Maintenance</option>
+                                                        <option value="Unavailable" {% if p.status == 'Unavailable' %}selected{% endif %}>Unavailable</option>
+                                                    </select>
+                                                {% endif %}
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <p class="text-muted mb-0">No projectors registered.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Login - PUP AI Reservation System{% endblock %}
+
+{% block content %}
+<div class="login-card-container animated-fade-in">
+    <div class="login-card text-start">
+        <h2 class="login-header-title text-center">Welcome Back</h2>
+        <p class="login-header-subtitle text-center">Sign in to continue to the reservation system.</p>
+        
+        <!-- Segmented Role Selector -->
+        <div class="role-selector-container">
+            <button type="button" id="role-student-btn" class="role-selector-btn active" onclick="setRole('student')">
+                <i class="fa-solid fa-user me-1"></i> User
+            </button>
+            <button type="button" id="role-admin-btn" class="role-selector-btn" onclick="setRole('admin')">
+                <i class="fa-solid fa-user-tie me-1"></i> Faculty/Admin
+            </button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('auth.login') }}" id="login-form">
+            {{ form.csrf_token }}
+            
+            <!-- Hidden Role Field -->
+            <input type="hidden" id="login-role-input" name="role" value="student">
+            
+            <!-- Email Input -->
+            <div class="pup-form-group">
+                <label class="pup-form-label" for="email" id="email-label">PUP Webmail</label>
+                <div class="pup-input-wrapper">
+                    <input type="email" id="email" name="email" class="pup-input {% if form.email.errors %}is-invalid{% endif %}" placeholder="yourname@iskolarngbayan.pup.edu.ph" value="{{ form.email.data or '' }}" required>
+                    {% if form.email.errors %}
+                        <div class="pup-input-feedback-invalid">✕ {{ form.email.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Password Input -->
+            <div class="pup-form-group">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="pup-form-label mb-0" for="password">Password</label>
+                    <a href="{{ url_for('auth.forgot_password') }}" id="forgot-password-link" class="text-decoration-none small text-pup-primary fw-semibold" style="font-size: 12px; color: maroon !important;">Forgot Password?</a>
+                </div>
+                <div class="pup-input-wrapper position-relative">
+                    <input type="password" id="password" name="password" class="pup-input pe-5 {% if form.password.errors %}is-invalid{% endif %}" placeholder="Enter your password" required>
+                    <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none toggle-password" tabindex="-1" style="z-index: 10;">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                    {% if form.password.errors %}
+                        <div class="pup-input-feedback-invalid mt-1">✕ {{ form.password.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="mt-4">
+                <button type="submit" id="login-submit-btn" class="btn btn-pup-primary w-100 py-3" style="background-color: maroon !important; border-color: maroon !important;">Login</button>
+            </div>
+        </form>
+        
+        <div id="student-info-message" class="alert alert-info text-center mt-4 mb-0 py-2 fade-transition" style="font-size: 13px;">
+            <i class="fa-solid fa-circle-info me-1"></i> Users must activate their account before first use. Use your PUP Webmail and the default password provided by the administrator.
+        </div>
+
+        <p class="text-muted text-center mt-4 mb-0" style="font-size: 11px; line-height: 1.4;">
+            By using this service, you understood and agree to the PUP Online Services 
+            <a href="https://www.pup.edu.ph/terms/" target="_blank" class="text-decoration-none fw-semibold">Terms of Use</a> 
+            and 
+            <a href="https://www.pup.edu.ph/privacy/" target="_blank" class="text-decoration-none fw-semibold">Privacy Statement</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function setRole(role) {
+        document.getElementById('login-role-input').value = role;
+        
+        const studentBtn = document.getElementById('role-student-btn');
+        const adminBtn = document.getElementById('role-admin-btn');
+        const emailInput = document.getElementById('email');
+        const emailLabel = document.getElementById('email-label');
+        const studentInfoMsg = document.getElementById('student-info-message');
+        const forgotPasswordLink = document.getElementById('forgot-password-link');
+        
+        if (role === 'student') {
+            studentBtn.classList.add('active');
+            adminBtn.classList.remove('active');
+            emailInput.placeholder = "yourname@iskolarngbayan.pup.edu.ph";
+            emailInput.type = "email";
+            if (emailLabel) emailLabel.innerText = "PUP Webmail";
+            if (studentInfoMsg) studentInfoMsg.classList.remove('hidden-msg');
+            if (forgotPasswordLink) forgotPasswordLink.style.display = 'inline';
+        } else {
+            studentBtn.classList.remove('active');
+            adminBtn.classList.add('active');
+            emailInput.placeholder = "Enter admin username";
+            emailInput.type = "text";
+            if (emailLabel) emailLabel.innerText = "Username";
+            if (studentInfoMsg) studentInfoMsg.classList.add('hidden-msg');
+            if (forgotPasswordLink) forgotPasswordLink.style.display = 'none';
+        }
+    }
+    
+    // Simple button loader feedback
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) {
+        loginForm.addEventListener('submit', () => {
+            const btn = document.getElementById('login-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Submitting...';
+        });
+    }
+
+    // Toggle password visibility
+    const togglePasswordBtns = document.querySelectorAll('.toggle-password');
+    togglePasswordBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const input = this.previousElementSibling;
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}System Audit Logs - PUP Reservation{% endblock %}
+
+{% set active_page = 'logs' %}
+
+{% block admin_content %}
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">System Audit Logs</h2>
+            <p class="text-muted mb-0 small">Security logs recording admin actions, authentication logs, and database creations.</p>
+        </div>
+    </div>
+
+    <!-- Logs Card -->
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body p-4 text-start">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check text-maroon me-2"></i>Security Audit Trail</h5>
+            
+            {% if logs %}
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table align-middle table-hover text-start">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="py-3" style="width: 80px;">Log ID</th>
+                                <th class="py-3" style="width: 150px;">Timestamp</th>
+                                <th class="py-3" style="width: 150px;">Account Email</th>
+                                <th class="py-3" style="width: 180px;">Action</th>
+                                <th class="py-3">Details</th>
+                                <th class="py-3" style="width: 120px;">IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for l in logs %}
+                                <tr>
+                                    <td class="fw-bold text-muted">#{{ l.id }}</td>
+                                    <td class="small">{{ l.created_at.strftime('%Y-%m-%d %I:%M:%S %p') }}</td>
+                                    <td class="small fw-semibold text-slate">{{ l.user.email if l.user else 'Guest/System' }}</td>
+                                    <td>
+                                        <span class="badge {% if 'APPROVE' in l.action or 'ADD' in l.action %}bg-success{% elif 'REJECT' in l.action or 'DEACTIVATE' in l.action %}bg-danger{% elif 'LOGIN' in l.action %}bg-primary{% else %}bg-secondary{% endif %}">
+                                            {{ l.action }}
+                                        </span>
+                                    </td>
+                                    <td class="small text-dark">{{ l.details }}</td>
+                                    <td class="small text-muted">{{ l.ip_address or '127.0.0.1' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <p class="text-muted mb-0">No system events logged yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

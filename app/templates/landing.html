@@ -1,0 +1,125 @@
+{% extends "shared/base.html" %}
+
+{% block title %}PUP Parañaque Campus Reservation System{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 animated-fade-in">
+    <!-- Hero Container -->
+    <div class="hero-container">
+        <div class="hero-content text-start">
+            <div class="hero-subhead">Polytechnic University of the Philippines | Parañaque Campus</div>
+            <h1 class="hero-title">Reservation<br>System</h1>
+            <p class="hero-desc">Reserve Audio-Visual Rooms, Laboratories, and Projectors efficiently using intelligent scheduling assistance.</p>
+            <div class="d-flex gap-3">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.role == 'admin' %}
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-pup-primary">Go to Dashboard</a>
+                    {% else %}
+                        <a href="{{ url_for('student.dashboard') }}" class="btn btn-pup-primary">Reserve Now</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-pup-primary">Reserve Now</a>
+                {% endif %}
+                <a href="#about" class="btn btn-pup-secondary text-dark border-secondary">Learn More</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Section -->
+    <div class="container py-5" id="about">
+        <div class="row align-items-center gy-4">
+            <div class="col-lg-6 text-start">
+                <span class="text-maroon fw-bold text-uppercase letter-spacing-1">Intelligent Operations</span>
+                <h2 class="fw-bold mt-2 text-dark">Reserve Campus Facilities Efficiently with AI Assistance</h2>
+                <p class="text-muted mt-3">An intelligent reservation platform for Audio-Visual Rooms, Laboratories, and Projectors at the Polytechnic University of the Philippines – Parañaque Campus.</p>
+                <p class="text-muted">Equipped with a real-time scheduling engine, conflict detector, alternative slot suggestions, and peak-usage forecasts, our system ensures that university physical assets are optimally distributed with minimum friction.</p>
+            </div>
+            <div class="col-lg-6">
+                <div class="row g-4">
+                    <div class="col-6">
+                        <div class="p-4 rounded-3 text-center" style="background: #FEE2E2;">
+                            <h3 class="fw-bold text-maroon mb-1">6+</h3>
+                            <span class="small fw-semibold text-slate">Active Rooms</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-4 rounded-3 text-center" style="background: #FEF3C7;">
+                            <h3 class="fw-bold text-maroon mb-1">10+</h3>
+                            <span class="small fw-semibold text-slate">Projectors</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-4 rounded-3 text-center" style="background: #DBEAFE;">
+                            <h3 class="fw-bold text-maroon mb-1">99%</h3>
+                            <span class="small fw-semibold text-slate">Conflict Free</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-4 rounded-3 text-center" style="background: #D1FAE5;">
+                            <h3 class="fw-bold text-maroon mb-1">Instant</h3>
+                            <span class="small fw-semibold text-slate">AI Predictions</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="bg-white py-5" id="facilities">
+        <div class="container py-3">
+            <div class="text-center mb-5">
+                <span class="text-maroon fw-bold text-uppercase letter-spacing-1">Campus Assets</span>
+                <h2 class="fw-bold text-dark mt-2">Available Categories For Reservation</h2>
+                <p class="text-muted mx-auto" style="max-width: 600px;">Select from the list of managed assets below. AI assistant checks schedule overlaps dynamically on form entry.</p>
+            </div>
+            
+            <div class="row g-4">
+                <!-- AVR Card -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card text-start">
+                        <div class="feature-icon-box">
+                            <i class="fa-solid fa-film"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-3">AVR Reservations</h4>
+                        <p class="text-muted mb-0 small">Reserve audio-visual rooms for lectures, seminars, large classes, and university-related events.</p>
+                    </div>
+                </div>
+                
+                <!-- Labs Card -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card text-start">
+                        <div class="feature-icon-box" style="background: #FEF3C7; color: #D97706;">
+                            <i class="fa-solid fa-laptop-code"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-3">Laboratory Reservations</h4>
+                        <p class="text-muted mb-0 small">Book Computer Laboratories or Hospitality Management Laboratories for practical classes and examinations.</p>
+                    </div>
+                </div>
+                
+                <!-- Projectors Card -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card text-start">
+                        <div class="feature-icon-box" style="background: #E0F2FE; color: #0284C7;">
+                            <i class="fa-solid fa-video"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-3">Projector Reservations</h4>
+                        <p class="text-muted mb-0 small">Book portable classroom projectors. Select a unit instantly via the dynamic availability grid.</p>
+                    </div>
+                </div>
+                
+                <!-- AI Assistant Card -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card text-start">
+                        <div class="feature-icon-box" style="background: #ECFDF5; color: #059669;">
+                            <i class="fa-solid fa-brain"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-3">AI Scheduling</h4>
+                        <p class="text-muted mb-0 small">Receive intelligent scheduling suggestions, conflict mitigations, and peak utilization predictions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

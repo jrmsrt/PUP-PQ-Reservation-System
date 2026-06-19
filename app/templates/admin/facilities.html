@@ -1,0 +1,125 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Facilities Management - PUP Reservation{% endblock %}
+
+{% set active_page = 'facilities' %}
+
+{% block admin_content %}
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">Facility Management</h2>
+            <p class="text-muted mb-0 small">Add rooms, track usage, and update room availability.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Add New Facility Column -->
+        <div class="col-lg-4 text-start">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 16px;">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-square-plus text-maroon me-2"></i>Register Room</h5>
+                
+                <form method="POST" action="{{ url_for('admin.facilities') }}">
+                    {{ form.csrf_token }}
+                    
+                    <!-- Code -->
+                    <div class="pup-form-group">
+                        <label class="pup-form-label" for="code">Room Code</label>
+                        <input type="text" id="code" name="code" class="pup-input" placeholder="e.g., AVR-301" required>
+                    </div>
+                    
+                    <!-- Type -->
+                    <div class="pup-form-group">
+                        <label class="pup-form-label" for="type">Facility Type</label>
+                        <select id="type" name="type" class="pup-input" style="padding: 0 15px;" required>
+                            <option value="Audio-Visual Room (AVR)">Audio-Visual Room (AVR)</option>
+                            <option value="Computer Laboratory">Computer Laboratory</option>
+                            <option value="Hospitality Management Laboratory">Hospitality Management Laboratory</option>
+                        </select>
+                    </div>
+
+                    
+                    <!-- Status -->
+                    <div class="pup-form-group">
+                        <label class="pup-form-label" for="status">Initial Status</label>
+                        <select id="status" name="status" class="pup-input" style="padding: 0 15px;" required>
+                            <option value="Available">Available</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Unavailable">Unavailable</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-pup-primary w-100 py-3 mt-3">
+                        <i class="fa-solid fa-save me-2"></i>Save Facility
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Room Registry List Column -->
+        <div class="col-lg-8 text-start">
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 16px;">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-door-open text-maroon me-2"></i>Active Facilities Registry</h5>
+                
+                {% if rooms %}
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="py-3">Code</th>
+                                    <th class="py-3">Type</th>
+                                    <th class="py-3">Status</th>
+                                    <th class="py-3 text-end">Update Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in rooms %}
+                                    <tr>
+                                        <td class="fw-bold text-dark">{{ r.code }}</td>
+                                        <td>{{ r.type }}</td>
+                                        <td>
+                                            {% if r.status == 'Available' %}
+                                                <span class="badge bg-success">Available</span>
+                                            {% elif r.status == 'Reserved' %}
+                                                <span class="badge bg-danger">Reserved</span>
+                                            {% elif r.status == 'Occupied' %}
+                                                <span class="badge bg-danger">Occupied</span>
+                                            {% elif r.status == 'Maintenance' %}
+                                                <span class="badge bg-warning text-dark">Maintenance</span>
+                                            {% elif r.status == 'Unavailable' %}
+                                                <span class="badge bg-danger">Unavailable</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ r.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <form action="{{ url_for('admin.update_facility_status', id=r.id) }}" method="POST" class="d-inline-flex gap-2 align-items-center justify-content-end w-100">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                {% if r.status in ['Reserved', 'Occupied'] %}
+                                                    <select name="status" class="form-select form-select-sm py-1 border-secondary bg-light text-muted" style="width: 190px; border-radius: 6px; cursor: not-allowed;" disabled>
+                                                        <option value="{{ r.status }}" selected>{{ r.status }}</option>
+                                                    </select>
+                                                {% else %}
+                                                    <select name="status" class="form-select form-select-sm py-1 border-secondary" style="width: 160px; border-radius: 6px; cursor: pointer;" onchange="this.form.submit()">
+                                                        <option value="Available" {% if r.status == 'Available' %}selected{% endif %}>Available</option>
+                                                        <option value="Maintenance" {% if r.status == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+                                                        <option value="Unavailable" {% if r.status == 'Unavailable' or r.status == 'Archived' %}selected{% endif %}>Unavailable</option>
+                                                    </select>
+                                                {% endif %}
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <p class="text-muted mb-0">No rooms registered. Fill out the registration form to add facilities.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

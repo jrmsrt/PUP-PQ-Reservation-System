@@ -1,0 +1,188 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}AI Insights & Suggestions - PUP Reservation{% endblock %}
+
+{% set active_page = 'ai_insights' %}
+
+{% block admin_content %}
+<style>
+    .ai-forecast-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .ai-forecast-table th,
+    .ai-forecast-table td {
+        vertical-align: middle;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .ai-forecast-table .col-category {
+        width: 31%;
+    }
+
+    .ai-forecast-table .col-occupancy {
+        width: 15%;
+    }
+
+    .ai-forecast-table .col-demand {
+        width: 22%;
+    }
+
+    .ai-forecast-table .col-peak {
+        width: 21%;
+    }
+
+    .ai-forecast-table .col-risk {
+        width: 11%;
+        text-align: center;
+        white-space: nowrap;
+        overflow-wrap: normal;
+    }
+
+    .ai-forecast-table .risk-badge {
+        display: inline-flex;
+        justify-content: center;
+        min-width: 42px;
+    }
+
+    @media (max-width: 768px) {
+        .ai-forecast-table {
+            min-width: 760px;
+        }
+    }
+</style>
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">AI Recommendation & Forecasting Insights</h2>
+            <p class="text-muted mb-0 small">Review live utilization forecasts and recommendations generated from reservation history.</p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4 text-start">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 16px;">
+                <div class="feature-icon-box mb-3" style="background: #FFFBEB; color: #D97706; width: 44px; height: 44px; border-radius: 10px; font-size: 18px;">
+                    <i class="fa-solid fa-fire"></i>
+                </div>
+                <h6 class="fw-bold text-muted mb-1">Busiest Day</h6>
+                <h3 class="fw-bold text-dark mb-2">{{ insights.peak_day }}</h3>
+                <p class="text-muted small mb-0">{{ insights.peak_day_reason }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 16px;">
+                <div class="feature-icon-box mb-3" style="background: #E0F2FE; color: #0284C7; width: 44px; height: 44px; border-radius: 10px; font-size: 18px;">
+                    <i class="fa-solid fa-hourglass-start"></i>
+                </div>
+                <h6 class="fw-bold text-muted mb-1">Peak Occupancy Hours</h6>
+                <h3 class="fw-bold text-dark mb-2">{{ insights.peak_hour }}</h3>
+                <p class="text-muted small mb-0">{{ insights.peak_hour_reason }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 16px;">
+                <div class="feature-icon-box mb-3" style="background: #ECFDF5; color: #059669; width: 44px; height: 44px; border-radius: 10px; font-size: 18px;">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                </div>
+                <h6 class="fw-bold text-muted mb-1">Maintenance Advisory</h6>
+                <h3 class="fw-bold text-success mb-2">{{ insights.maintenance_window }}</h3>
+                <p class="text-muted small mb-0">{{ insights.maintenance_reason }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 text-start">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 16px; background: #FFFFFF;">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-sliders text-maroon me-2"></i>Configure AI Recommendations</h5>
+                <p class="text-muted small mb-4">Model: <strong>{{ insights.model_type }}</strong>. Confidence: <strong>{{ insights.model_confidence }}%</strong>. Demand trend: <strong>{{ insights.trend_label }}</strong>. Samples analyzed: <strong>{{ insights.total_samples }}</strong>.</p>
+
+                <form id="ai-config-form" method="POST" action="{{ url_for('admin.ai_insights') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-slate" style="font-size: 14px;">Conflict Tolerance Buffer (Minutes)</label>
+                        <input type="range" class="form-range" min="0" max="60" step="5" value="{{ insights.buffer_minutes }}" id="bufferRange" name="buffer_minutes" oninput="document.getElementById('bufferVal').innerText = this.value">
+                        <span class="small text-muted">Current Buffer: <strong id="bufferVal" class="text-maroon">{{ insights.buffer_minutes }}</strong> minutes before/after booking. AI recommendation: <strong>{{ insights.recommended_buffer_minutes }}</strong> minutes.</span>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input type="hidden" name="auto_suggest" value="0">
+                        <input class="form-check-input" type="checkbox" id="autoSuggest" name="auto_suggest" value="1" {% if insights.settings.auto_suggest %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold text-slate" for="autoSuggest" style="font-size: 14px;">Enable Automatic Alternative Slot Suggestions</label>
+                        <div class="text-muted small" style="font-size: 11px;">Students receive alternate date/time cards when conflicts occur.</div>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        <input type="hidden" name="peak_warning" value="0">
+                        <input class="form-check-input" type="checkbox" id="peakWarning" name="peak_warning" value="1" {% if insights.settings.peak_warning %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold text-slate" for="peakWarning" style="font-size: 14px;">Display Peak Utilization Warnings</label>
+                        <div class="text-muted small" style="font-size: 11px;">Warns students when they attempt to book resources during high-utilization windows.</div>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        <input type="hidden" name="email_alerts" value="0">
+                        <input class="form-check-input" type="checkbox" id="emailNotif" name="email_alerts" value="1" {% if insights.settings.email_alerts %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold text-slate" for="emailNotif" style="font-size: 14px;">Automated Admin Alerts on High-Density Booking Days</label>
+                        <div class="text-muted small" style="font-size: 11px;">Sends a digest summary to administrators when forecast pressure reaches watch or high risk.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-pup-primary w-100 py-3">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>Save Configuration
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-top">
+                    <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-wand-magic-sparkles text-maroon me-2"></i>AI Recommendations</h6>
+                    <ul class="small text-muted mb-0 ps-3">
+                        {% for item in insights.recommendations %}
+                            <li class="mb-2">{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 16px;">
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-brain text-maroon me-2"></i>Occupancy Forecasting Model</h5>
+                <p class="text-muted small mb-4">Generated {{ insights.generated_at }} from live reservation history, active inventory, weekday demand, and hour-level occupancy patterns. {{ insights.model_note }}</p>
+
+                <div class="p-3 bg-light rounded-3 mb-4" style="border-left: 4px solid var(--pup-gold-dark);">
+                    <div class="fw-bold text-slate small mb-1">Conflict Prediction Alerts</div>
+                    <p class="mb-0 text-muted small">Current status: <span class="text-{{ insights.alert_class }} fw-bold">{{ insights.alert_level }}</span>. {{ insights.alert_text }}</p>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle table-sm text-start ai-forecast-table" style="font-size: 13px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="col-category">Category</th>
+                                <th class="col-occupancy">Avg.<br>Occupancy</th>
+                                <th class="col-demand">ML Demand<br>Forecast</th>
+                                <th class="col-peak">Peak<br>Forecast</th>
+                                <th class="col-risk">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in insights.forecast_rows %}
+                                <tr>
+                                    <td class="fw-bold col-category">{{ row.category }}</td>
+                                    <td class="col-occupancy">{{ row.avg_occupancy }}</td>
+                                    <td class="col-demand">{{ row.predicted_demand }}</td>
+                                    <td class="col-peak">{{ row.peak_forecast }}</td>
+                                    <td class="col-risk"><span class="badge risk-badge bg-{{ row.risk_class }}">{{ row.risk_level }}</span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

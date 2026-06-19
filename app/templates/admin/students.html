@@ -1,0 +1,514 @@
+{% extends "admin/admin_base.html" %}
+
+{% block admin_content %}
+<div class="container-fluid py-4 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">User Account Management</h2>
+            <p class="text-muted mb-0">Import and manage pre-registered user accounts (students and faculty).</p>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                <input type="text" id="studentSearch" class="form-control border-start-0 ps-0" placeholder="Search students...">
+            </div>
+            <button type="button" class="btn btn-pup-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fa-solid fa-file-import me-2"></i> Import Masterlist
+            </button>
+        </div>
+    </div>
+
+    <!-- Students Data Table -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 custom-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Student Number</th>
+                            <th>Name</th>
+                            <th>Block</th>
+                            <th>PUP Webmail</th>
+                            <th>Status</th>
+                            <th>Activation</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td class="ps-4 fw-semibold">{{ student.student_number }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ student.full_name }}</div>
+                                {% if student.role and student.role != 'student' %}
+                                    <span class="badge bg-info text-dark" style="font-size: 10px;">{{ student.role | title }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="width: 120px;">
+                                <span class="text-dark fw-semibold small">{{ student.program or '—' }} {{ student.year_section or '—' }}</span>
+                            </td>
+                            <td class="text-muted small">{{ student.email }}</td>
+                            <td>
+                                {% if student.is_active %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3">Enabled</span>
+                                {% else %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3">Disabled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if student.password_changed and student.email_verified %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3">Activated</span>
+                                {% else %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-3 text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" title="Edit Student Details" onclick='openEditModal({{ student.id|tojson }}, {{ student.student_number|tojson }}, {{ student.first_name|tojson }}, {{ student.last_name|tojson }}, {{ student.email|tojson }}, {{ student.middle_name|tojson }}, {{ student.program|tojson }}, {{ student.year_section|tojson }})'>
+                                        <i class="fa-solid fa-user-pen"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" title="View OTP History" onclick='openOtpModal({{ student.id|tojson }}, {{ (student.first_name ~ " " ~ student.last_name)|tojson }})'>
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('admin.reset_student', id=student.id) }}" class="m-0 p-0 d-inline account-action-form">
+                                        {{ form.csrf_token }}
+                                        <button type="button" class="btn btn-sm btn-outline-warning" title="Reset Default Password" onclick='openResetStudentAction(this.form, {{ student.full_name|tojson }})'>
+                                            <i class="fa-solid fa-key"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin.force_reverify', id=student.id) }}" class="m-0 p-0 d-inline account-action-form">
+                                        {{ form.csrf_token }}
+                                        <button type="button" class="btn btn-sm btn-outline-info" title="Force Re-verification" onclick='openReverifyStudentAction(this.form, {{ student.full_name|tojson }})'>
+                                            <i class="fa-solid fa-rotate-left"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin.toggle_student', id=student.id) }}" class="m-0 p-0 d-inline account-action-form">
+                                        {{ form.csrf_token }}
+                                        {% if student.is_active %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Disable Account" onclick='openToggleStudentAction(this.form, {{ student.full_name|tojson }}, false)'>
+                                                <i class="fa-solid fa-ban"></i>
+                                            </button>
+                                        {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-success" title="Enable Account" onclick='openToggleStudentAction(this.form, {{ student.full_name|tojson }}, true)'>
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-users fa-3x mb-3 text-light"></i>
+                                <p class="mb-0">No user accounts found. Import a masterlist to begin.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Action Confirmation Modal -->
+<div class="modal fade" id="accountActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 text-start">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="account-action-title">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="d-flex gap-3 align-items-start">
+                    <div id="account-action-icon" class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                    <p id="account-action-message" class="mb-0 text-muted"></p>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-pup-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="account-action-confirm" class="btn py-2 px-4">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">Import Student Masterlist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.students') }}" enctype="multipart/form-data">
+                {{ form.csrf_token }}
+                <div class="modal-body py-4">
+                    <div class="alert alert-info py-2" style="font-size: 13px;">
+                        <i class="fa-solid fa-circle-info me-1"></i> Upload a <strong>CSV (.csv)</strong> or <strong>Excel (.xlsx)</strong> file.<br>
+                        <strong>Expected columns (7-column format):</strong> Student Number, Email, Last Name, First Name, Middle Name, Program, Year &amp; Section<br>
+                        <strong>Simple format (4-column):</strong> Student Number, First Name, Last Name, Email
+                    </div>
+                    <div class="pup-form-group mb-0">
+                        <label class="pup-form-label fw-bold small text-dark mb-2">Select File</label>
+                        {{ form.file(class="pup-file-import-input", accept=".csv, .xls, .xlsx") }}
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-pup-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-pup-primary py-2 px-4" onclick="openImportMasterlistAction(this.form)">
+                        <i class="fa-solid fa-cloud-arrow-up me-2"></i> Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 text-start">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">Edit Student Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="editForm" hx-boost="false">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body py-4">
+                    <div class="pup-form-group mb-3">
+                        <label class="pup-form-label fw-bold text-dark">Student Number</label>
+                        <input type="text" id="edit-student-number" name="student_number" class="pup-input bg-light" required>
+                    </div>
+                    <div class="pup-form-group mb-3">
+                        <label class="pup-form-label fw-bold text-dark">First Name</label>
+                        <input type="text" id="edit-first-name" name="first_name" class="pup-input bg-light" required>
+                    </div>
+                    <div class="pup-form-group mb-3">
+                        <label class="pup-form-label fw-bold text-dark">Middle Name</label>
+                        <input type="text" id="edit-middle-name" name="middle_name" class="pup-input bg-light">
+                    </div>
+                    <div class="pup-form-group mb-3">
+                        <label class="pup-form-label fw-bold text-dark">Last Name</label>
+                        <input type="text" id="edit-last-name" name="last_name" class="pup-input bg-light" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="pup-form-group mb-3">
+                                <label class="pup-form-label fw-bold text-dark">Program</label>
+                                <input type="text" id="edit-program" name="program" class="pup-input bg-light" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="pup-form-group mb-3">
+                                <label class="pup-form-label fw-bold text-dark">Year & Section</label>
+                                <input type="text" id="edit-year-section" name="year_section" class="pup-input bg-light" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pup-form-group mb-0">
+                        <label class="pup-form-label fw-bold text-dark">PUP Webmail</label>
+                        <input type="email" id="edit-pup-email" name="pup_email" class="pup-input bg-light" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-pup-secondary py-2" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-pup-primary py-2 px-4" onclick="openSaveStudentAction(this.form)">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- OTP Verification History Modal -->
+<div class="modal fade" id="otpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4 text-start">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">OTP Verification History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="mb-3">
+                    <strong>Student:</strong> <span id="otp-student-name" class="text-maroon fw-bold"></span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>OTP Code</th>
+                                <th>Generated At</th>
+                                <th>Expires At</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="otp-history-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-pup-secondary py-2" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_js %}
+<script>
+    var editModal;
+    var otpModal;
+    var accountActionModal;
+    var pendingAccountActionForm = null;
+
+    // Global delegation for live search in User Directory
+    if (!window.userSearchListenerAttached) {
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.id === 'studentSearch') {
+                const term = e.target.value.toLowerCase().trim();
+                const table = document.querySelector('.custom-table');
+                if (!table) return;
+                const rows = table.querySelectorAll('tbody tr');
+                
+                let matchCount = 0;
+                let actualRowsCount = 0;
+                
+                rows.forEach(row => {
+                    // Ignore the 'No results' fallback rows
+                    if (row.id === 'no-search-results-row' || row.querySelector('td[colspan="7"]')) {
+                        return;
+                    }
+                    actualRowsCount++;
+                    const text = row.textContent.toLowerCase();
+                    if (text.includes(term)) {
+                        row.style.display = '';
+                        matchCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                let noResultRow = document.getElementById('no-search-results-row');
+                if (matchCount === 0 && actualRowsCount > 0) {
+                    if (!noResultRow) {
+                        const tbody = table.querySelector('tbody');
+                        if (tbody) {
+                            const tr = document.createElement('tr');
+                            tr.id = 'no-search-results-row';
+                            const td = document.createElement('td');
+                            td.colSpan = 7;
+                            td.className = 'text-center py-5 text-muted';
+                            const icon = document.createElement('i');
+                            icon.className = 'fa-solid fa-magnifying-glass fa-3x mb-3 text-light';
+                            const msg = document.createElement('p');
+                            msg.className = 'mb-0';
+                            msg.textContent = 'No matching user accounts found.';
+                            td.append(icon, msg);
+                            tr.appendChild(td);
+                            tbody.appendChild(tr);
+                        }
+                    } else {
+                        noResultRow.style.display = '';
+                    }
+                } else {
+                    if (noResultRow) {
+                        noResultRow.style.display = 'none';
+                    }
+                }
+            }
+        });
+        window.userSearchListenerAttached = true;
+    }
+
+    function initStudentsPage() {
+        if (typeof bootstrap === 'undefined') {
+            console.log('Bootstrap not loaded yet, deferring modal initialization...');
+            document.addEventListener('DOMContentLoaded', initStudentsPage);
+            return;
+        }
+
+        const editEl = document.getElementById('editModal');
+        const otpEl = document.getElementById('otpModal');
+        const accountActionEl = document.getElementById('accountActionModal');
+        if (editEl) editModal = new bootstrap.Modal(editEl);
+        if (otpEl) otpModal = new bootstrap.Modal(otpEl);
+        if (accountActionEl) accountActionModal = new bootstrap.Modal(accountActionEl);
+    }
+
+    initStudentsPage();
+
+    function openEditModal(id, studentNumber, firstName, lastName, email, middleName, program, yearSection) {
+        document.getElementById('edit-student-number').value = studentNumber;
+        document.getElementById('edit-first-name').value = firstName;
+        document.getElementById('edit-middle-name').value = middleName || '';
+        document.getElementById('edit-last-name').value = lastName;
+        document.getElementById('edit-program').value = program || '';
+        document.getElementById('edit-year-section').value = yearSection || '';
+        document.getElementById('edit-pup-email').value = email;
+        document.getElementById('editForm').action = `/admin/students/edit/${id}`;
+        if (editModal) {
+            editModal.show();
+        } else {
+            console.error('editModal is not initialized');
+        }
+    }
+
+    function openAccountActionModal(form, title, message, confirmLabel, tone) {
+        pendingAccountActionForm = form;
+
+        const titleEl = document.getElementById('account-action-title');
+        const messageEl = document.getElementById('account-action-message');
+        const iconEl = document.getElementById('account-action-icon');
+        const confirmBtn = document.getElementById('account-action-confirm');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+        confirmBtn.textContent = confirmLabel;
+        confirmBtn.disabled = false;
+
+        const toneMap = {
+            danger: ['bg-danger-subtle', 'text-danger', 'btn-danger', 'fa-ban'],
+            warning: ['bg-warning-subtle', 'text-warning', 'btn-warning', 'fa-key'],
+            info: ['bg-info-subtle', 'text-info', 'btn-info', 'fa-rotate-left'],
+            success: ['bg-success-subtle', 'text-success', 'btn-success', 'fa-check']
+        };
+        const selected = toneMap[tone] || toneMap.info;
+
+        iconEl.className = `rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 ${selected[0]} ${selected[1]}`;
+        iconEl.innerHTML = `<i class="fa-solid ${selected[3]}"></i>`;
+        confirmBtn.className = `btn py-2 px-4 ${selected[2]}`;
+
+        if (accountActionModal) {
+            accountActionModal.show();
+        } else {
+            console.error('accountActionModal is not initialized');
+        }
+    }
+
+    function openResetStudentAction(form, studentName) {
+        openAccountActionModal(
+            form,
+            'Reset Default Password',
+            `Reset ${studentName} to the default password? The student will need to use the default password on next login.`,
+            'Reset Password',
+            'warning'
+        );
+    }
+
+    function openImportMasterlistAction(form) {
+        if (!form.reportValidity()) return;
+        openAccountActionModal(
+            form,
+            'Import Masterlist',
+            'Import user accounts from the selected masterlist file? Existing duplicate or incomplete records may be skipped.',
+            'Import Masterlist',
+            'info'
+        );
+    }
+
+    function openSaveStudentAction(form) {
+        if (!form.reportValidity()) return;
+        openAccountActionModal(
+            form,
+            'Save Account Changes',
+            'Save the updated account information for this user?',
+            'Save Changes',
+            'success'
+        );
+    }
+
+    function openReverifyStudentAction(form, studentName) {
+        openAccountActionModal(
+            form,
+            'Force Re-verification',
+            `Force ${studentName} to re-verify their email and change their password?`,
+            'Force Re-verification',
+            'info'
+        );
+    }
+
+    function openToggleStudentAction(form, studentName, shouldEnable) {
+        if (shouldEnable) {
+            openAccountActionModal(
+                form,
+                'Enable Account',
+                `Enable ${studentName} and allow portal access again?`,
+                'Enable Account',
+                'success'
+            );
+            return;
+        }
+
+        openAccountActionModal(
+            form,
+            'Disable Account',
+            `Disable ${studentName}? This user will not be able to access the portal until re-enabled.`,
+            'Disable Account',
+            'danger'
+        );
+    }
+
+    const accountActionConfirm = document.getElementById('account-action-confirm');
+    if (accountActionConfirm && !window.accountActionConfirmAttached) {
+        accountActionConfirm.addEventListener('click', () => {
+            if (!pendingAccountActionForm) return;
+            accountActionConfirm.disabled = true;
+            accountActionConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+            pendingAccountActionForm.submit();
+        });
+        window.accountActionConfirmAttached = true;
+    }
+
+    function openOtpModal(id, studentName) {
+        document.getElementById('otp-student-name').innerText = studentName;
+        const tbody = document.getElementById('otp-history-table-body');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading OTP history...</td></tr>';
+        
+        if (otpModal) {
+            otpModal.show();
+        } else {
+            console.error('otpModal is not initialized');
+        }
+        
+        fetch(`/admin/students/otp-history/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                tbody.innerHTML = '';
+                if (data.otp_history && data.otp_history.length > 0) {
+                    data.otp_history.forEach(item => {
+                        let badgeClass = 'bg-secondary';
+                        if (item.status === 'Active') badgeClass = 'bg-success';
+                        if (item.status === 'Expired') badgeClass = 'bg-danger';
+                        if (item.status === 'Used') badgeClass = 'bg-primary';
+                        
+                        const tr = document.createElement('tr');
+                        const codeTd = document.createElement('td');
+                        codeTd.className = 'fw-bold';
+                        codeTd.textContent = item.otp_code;
+                        const createdTd = document.createElement('td');
+                        createdTd.textContent = item.created_at;
+                        const expiresTd = document.createElement('td');
+                        expiresTd.textContent = item.expires_at;
+                        const statusTd = document.createElement('td');
+                        const badge = document.createElement('span');
+                        badge.className = `badge ${badgeClass}`;
+                        badge.textContent = item.status;
+                        statusTd.appendChild(badge);
+                        tr.append(codeTd, createdTd, expiresTd, statusTd);
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">No OTP verification attempts found.</td></tr>';
+                }
+            })
+            .catch(err => {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-danger">Error loading OTP history.</td></tr>';
+            });
+    }
+</script>
+{% endblock %}

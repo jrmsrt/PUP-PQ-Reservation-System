@@ -1,0 +1,9 @@
+Flask
+Flask-WTF
+PyMySQL
+Werkzeug
+MarkupSafe
+gunicorn
+openpyxl
+reportlab
+scikit-learn

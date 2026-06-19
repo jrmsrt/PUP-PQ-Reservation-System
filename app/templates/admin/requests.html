@@ -1,0 +1,553 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Requests Queue - PUP Reservation{% endblock %}
+
+{% set active_page = 'requests' %}
+
+{% block admin_content %}
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">Reservation Requests Queue</h2>
+            <p class="text-muted mb-0 small">Approve, reject, or request revisions for student reservation requests.</p>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs border-bottom mb-4 text-start" id="requestTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold text-maroon" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-content" type="button" role="tab" aria-controls="all-content" aria-selected="false">
+                All Requests <span class="badge bg-maroon text-white ms-1">{{ all_requests | length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold text-maroon" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-content" type="button" role="tab" aria-controls="pending-content" aria-selected="true">
+                Pending Requests <span class="badge bg-maroon text-white ms-1">{{ pending | length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold text-maroon" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-content" type="button" role="tab" aria-controls="active-content" aria-selected="false">
+                Active Requests <span class="badge bg-maroon text-white ms-1">{{ active | length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold text-maroon" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-content" type="button" role="tab" aria-controls="history-content" aria-selected="false">
+                Processed History <span class="badge bg-maroon text-white ms-1">{{ processed | length }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content" id="requestTabsContent">
+        <!-- All Requests Tab -->
+        <div class="tab-pane fade" id="all-content" role="tabpanel" aria-labelledby="all-tab">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4 text-start">
+                    {% if all_requests %}
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="py-3">ID</th>
+                                        <th class="py-3">Student Name</th>
+                                        <th class="py-3">Facility</th>
+                                        <th class="py-3">Resource Code</th>
+                                        <th class="py-3">Schedule</th>
+                                        <th class="py-3">Status</th>
+                                        <th class="py-3">Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for r in all_requests %}
+                                        <tr>
+                                            <td class="fw-bold text-muted">#{{ r.id }}</td>
+                                            <td>
+                                                <div class="fw-semibold text-dark">{{ r.user.full_name }}</div>
+                                                <span class="text-muted small" style="font-size: 11px;">{{ r.user.student_number }}</span>
+                                            </td>
+                                            <td>{{ r.facility_type }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ r.facility.code if r.facility else (r.projector.code if r.projector else 'N/A') }}</span>
+                                            </td>
+                                            <td class="small">
+                                                <div>{{ r.schedule_date.strftime('%b %d, %Y') }}</div>
+                                                <div>{{ r.start_time.strftime('%I:%M %p') }} - {{ r.end_time.strftime('%I:%M %p') }}</div>
+                                            </td>
+                                            <td>
+                                                {% if r.status == 'PENDING APPROVAL' %}
+                                                    <span class="badge-status badge-pending">Pending</span>
+                                                {% elif r.status == 'APPROVED' %}
+                                                    <span class="badge-status badge-approved">Approved</span>
+                                                {% elif r.status == 'IN USE' %}
+                                                    <span class="badge-status badge-pending">In Use</span>
+                                                {% elif r.status == 'REJECTED' %}
+                                                    <span class="badge-status badge-rejected">Rejected</span>
+                                                {% elif r.status == 'COMPLETED' %}
+                                                    <span class="badge-status badge-completed">Completed</span>
+                                                {% elif r.status == 'AWAITING RETURN' %}
+                                                    <span class="badge-status badge-pending">Awaiting Return</span>
+                                                {% elif r.status == 'OVERDUE' %}
+                                                    <span class="badge-status badge-rejected">Overdue</span>
+                                                {% elif r.status == 'CANCELLED' %}
+                                                    <span class="badge-status badge-cancelled">Cancelled</span>
+                                                {% else %}
+                                                    <span class="badge-status bg-secondary text-white">{{ r.status }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small text-muted" style="max-width: 260px; word-wrap: break-word;">{{ r.remarks or 'N/A' }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <p class="text-muted mb-0">No reservation requests found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Queue Tab -->
+        <div class="tab-pane fade show active" id="pending-content" role="tabpanel" aria-labelledby="pending-tab">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4 text-start">
+                    {% if pending %}
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="py-3">ID</th>
+                                        <th class="py-3">Student Info</th>
+                                        <th class="py-3">Resource Type</th>
+                                        <th class="py-3">Resource Code</th>
+                                        <th class="py-3">Schedule Date</th>
+                                        <th class="py-3">Times</th>
+                                        <th class="py-3 text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for r in pending %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ r.id }}</td>
+                                            <td>
+                                                <div class="fw-bold text-dark">{{ r.user.full_name }}</div>
+                                                <div class="text-muted" style="font-size: 11px;">
+                                                    {{ r.user.student_number }} | {{ r.user.program }} {{ r.user.year_section }}<br>
+                                                    <i class="fa-solid fa-phone me-1"></i> {{ r.user.contact_number }}
+                                                </div>
+                                            </td>
+                                            <td>{{ r.facility_type }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ r.facility.code if r.facility else (r.projector.code if r.projector else 'N/A') }}</span>
+                                            </td>
+                                            <td>{{ r.schedule_date.strftime('%B %d, %Y') }}</td>
+                                            <td class="small">{{ r.start_time.strftime('%I:%M %p') }} - {{ r.end_time.strftime('%I:%M %p') }}</td>
+                                            <td class="text-end">
+                                                <button type="button" class="btn btn-sm btn-success me-1 js-approve-request" data-request-id="{{ r.id }}" data-student-name="{{ r.user.full_name }}">
+                                                    <i class="fa-solid fa-check me-1"></i>Approve
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger js-reject-request" data-request-id="{{ r.id }}" data-student-name="{{ r.user.full_name }}">
+                                                    <i class="fa-solid fa-xmark me-1"></i>Reject
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fa-solid fa-circle-check text-success fs-1 mb-3"></i>
+                            <p class="text-muted mb-0">Hooray! The pending requests queue is currently empty.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Requests Tab -->
+        <div class="tab-pane fade" id="active-content" role="tabpanel" aria-labelledby="active-tab">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4 text-start">
+                    {% if active %}
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="py-3">ID</th>
+                                        <th class="py-3">Student Name</th>
+                                        <th class="py-3">Facility</th>
+                                        <th class="py-3">Resource Code</th>
+                                        <th class="py-3">Schedule</th>
+                                        <th class="py-3">Status</th>
+                                        <th class="py-3">Custody / Usage</th>
+                                        <th class="py-3 text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for r in active %}
+                                        <tr>
+                                            <td class="fw-bold text-muted">#{{ r.id }}</td>
+                                            <td>
+                                                <div class="fw-semibold text-dark">{{ r.user.full_name }}</div>
+                                                <span class="text-muted small" style="font-size: 11px;">{{ r.user.student_number }}</span>
+                                            </td>
+                                            <td>{{ r.facility_type }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ r.facility.code if r.facility else (r.projector.code if r.projector else 'N/A') }}</span>
+                                            </td>
+                                            <td class="small">
+                                                <div>{{ r.schedule_date.strftime('%b %d, %Y') }}</div>
+                                                <div>{{ r.start_time.strftime('%I:%M %p') }} - {{ r.end_time.strftime('%I:%M %p') }}</div>
+                                            </td>
+                                            <td>
+                                                {% if r.status == 'APPROVED' %}
+                                                    <span class="badge-status badge-approved">Approved</span>
+                                                {% elif r.status == 'IN USE' %}
+                                                    <span class="badge-status badge-pending">In Use</span>
+                                                {% elif r.status == 'AWAITING RETURN' %}
+                                                    <span class="badge-status badge-pending">Awaiting Return</span>
+                                                {% elif r.status == 'OVERDUE' %}
+                                                    <span class="badge-status badge-rejected">Overdue</span>
+                                                {% else %}
+                                                    <span class="badge-status bg-secondary text-white">{{ r.status }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small">
+                                                {% if r.projector %}
+                                                    {% if r.checkout_time %}
+                                                        <div><strong>Checked out:</strong> {{ r.checkout_time }}</div>
+                                                        <div><strong>Received by:</strong> {{ r.received_by or 'N/A' }}</div>
+                                                    {% else %}
+                                                        <div class="text-muted">Reserved, not checked out</div>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <div><strong>Room use:</strong> {{ 'Currently in use' if r.status == 'IN USE' else 'Reserved' }}</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                {% if r.facility and r.status in ['APPROVED', 'IN USE'] %}
+                                                    <form action="{{ url_for('admin.requests_complete_facility', id=r.id) }}" method="POST" class="d-inline" data-confirm-title="Complete Facility Reservation?" data-confirm-message="Mark this facility reservation as completed?" data-confirm-button="Mark Completed" data-confirm-button-class="btn btn-success px-4">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success">Mark Completed</button>
+                                                    </form>
+                                                {% elif r.projector and r.status == 'APPROVED' and not r.checkout_time %}
+                                                    <button type="button" class="btn btn-sm btn-outline-primary js-checkout-request" data-request-id="{{ r.id }}" data-projector-code="{{ r.projector.code }}" data-student-name="{{ r.user.full_name }}">
+                                                        Check Out
+                                                    </button>
+                                                {% elif r.projector and r.status in ['APPROVED', 'AWAITING RETURN', 'OVERDUE'] and not r.return_time %}
+                                                    <button type="button" class="btn btn-sm btn-outline-success js-return-request" data-request-id="{{ r.id }}" data-projector-code="{{ r.projector.code }}">
+                                                        Mark Returned
+                                                    </button>
+                                                {% else %}
+                                                    <span class="text-muted small">No action</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fa-solid fa-calendar-check text-primary fs-1 mb-3"></i>
+                            <p class="text-muted mb-0">No active reservations need completion or return right now.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Processed History Tab -->
+        <div class="tab-pane fade" id="history-content" role="tabpanel" aria-labelledby="history-tab">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4 text-start">
+                    {% if processed %}
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="py-3">ID</th>
+                                        <th class="py-3">Student Name</th>
+                                        <th class="py-3">Facility</th>
+                                        <th class="py-3">Resource Code</th>
+                                        <th class="py-3">Schedule</th>
+                                        <th class="py-3">Status</th>
+                                        <th class="py-3">Custody</th>
+                                        <th class="py-3">Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for r in processed %}
+                                        <tr>
+                                            <td class="fw-bold text-muted">#{{ r.id }}</td>
+                                            <td>
+                                                <div class="fw-semibold text-dark">{{ r.user.full_name }}</div>
+                                                <span class="text-muted small" style="font-size: 11px;">{{ r.user.student_number }}</span>
+                                            </td>
+                                            <td>{{ r.facility_type }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">{{ r.facility.code if r.facility else (r.projector.code if r.projector else 'N/A') }}</span>
+                                            </td>
+                                            <td class="small">
+                                                <div>{{ r.schedule_date.strftime('%b %d, %Y') }}</div>
+                                                <div>{{ r.start_time.strftime('%I:%M %p') }} - {{ r.end_time.strftime('%I:%M %p') }}</div>
+                                            </td>
+                                            <td>
+                                                {% if r.status == 'APPROVED' %}
+                                                    <span class="badge-status badge-approved">Approved</span>
+                                                {% elif r.status == 'IN USE' %}
+                                                    <span class="badge-status badge-pending">In Use</span>
+                                                {% elif r.status == 'REJECTED' %}
+                                                    <span class="badge-status badge-rejected">Rejected</span>
+                                                {% elif r.status == 'COMPLETED' %}
+                                                    <span class="badge-status badge-completed">Completed</span>
+                                                {% elif r.status == 'AWAITING RETURN' %}
+                                                    <span class="badge-status badge-pending">Awaiting Return</span>
+                                                {% elif r.status == 'OVERDUE' %}
+                                                    <span class="badge-status badge-rejected">Overdue</span>
+                                                {% elif r.status == 'CANCELLED' %}
+                                                    <span class="badge-status badge-cancelled">Cancelled</span>
+                                                {% else %}
+                                                    <span class="badge-status bg-secondary text-white">{{ r.status }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small">
+                                                {% if r.projector %}
+                                                    {% if r.checkout_time %}
+                                                        <div><strong>Checked out:</strong> {{ r.checkout_time }}</div>
+                                                        <div><strong>Received by:</strong> {{ r.received_by or 'N/A' }}</div>
+                                                    {% else %}
+                                                        <div class="text-muted">Not checked out</div>
+                                                    {% endif %}
+                                                    {% if r.return_time %}
+                                                        <div><strong>Returned:</strong> {{ r.return_time }}</div>
+                                                        <div><strong>Condition:</strong> {{ r.equipment_condition or 'No notes' }}</div>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">Room reservation</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="small text-muted" style="max-width: 250px; word-wrap: break-word;">{{ r.remarks or 'N/A' }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <p class="text-muted mb-0">No processed history found.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Projector Checkout Modal -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+            <div class="modal-header bg-primary text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title fw-bold" id="checkoutModalLabel">Release Projector?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="checkoutForm" method="POST" hx-boost="false">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body text-start p-4">
+                    <p class="text-muted mb-3">
+                        Release <strong id="checkout-projector-code"></strong> for <strong id="checkout-student-name"></strong>.
+                    </p>
+                    <div class="mb-3">
+                        <label for="checkout-received-by" class="form-label fw-bold text-slate">Received By</label>
+                        <input type="text" class="form-control" id="checkout-received-by" name="received_by" placeholder="Name of student/faculty receiving the projector" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-pup-secondary border border-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Confirm Checkout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Projector Return Modal -->
+<div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+            <div class="modal-header bg-success text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title fw-bold" id="returnModalLabel">Mark Projector Returned?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="returnForm" method="POST" hx-boost="false">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body text-start p-4">
+                    <p class="text-muted mb-3">
+                        Confirm return of <strong id="return-projector-code"></strong>. This will complete the reservation and release the projector.
+                    </p>
+                    <div class="mb-3">
+                        <label for="return-condition" class="form-label fw-bold text-slate">Condition Notes</label>
+                        <textarea class="form-control" id="return-condition" name="equipment_condition" rows="3" placeholder="e.g., Returned in good condition, missing cable, damaged case..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-pup-secondary border border-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success px-4">Confirm Return</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Approve Booking Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+            <div class="modal-header bg-success text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title fw-bold" id="approveModalLabel">Approve Reservation?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="approveForm" method="POST" hx-boost="false">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body text-start p-4">
+                    <p class="text-muted">The student <strong id="approve-student-name"></strong> will receive an email notification regarding the approval.</p>
+                    <div class="mb-3">
+                        <label for="approve-remarks" class="form-label fw-bold text-slate">Administrative Remarks (Optional)</label>
+                        <textarea class="form-control" id="approve-remarks" name="remarks" rows="3" placeholder="Add optional details for this approval..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-pup-secondary border border-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success px-4">Confirm Approval</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Booking Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+            <div class="modal-header bg-danger text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title fw-bold" id="rejectModalLabel">Reject Reservation?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="rejectForm" method="POST" hx-boost="false">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body text-start p-4">
+                    <p class="text-muted">The student <strong id="reject-student-name"></strong> will receive an email notification regarding the rejection.</p>
+                    <div class="mb-3">
+                        <label for="reject-remarks" class="form-label fw-bold text-slate">Reason for Rejection (Required)</label>
+                        <textarea class="form-control" id="reject-remarks" name="remarks" rows="3" placeholder="Explain the reason for rejection..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-pup-secondary border border-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger px-4">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_js %}
+<script>
+    var appModal;
+    var rejModal;
+    var checkoutModal;
+    var returnModal;
+
+    function initModals() {
+        if (typeof bootstrap === 'undefined') {
+            console.log('Bootstrap not loaded yet, deferring modal initialization...');
+            document.addEventListener('DOMContentLoaded', initModals);
+            return;
+        }
+        const approveEl = document.getElementById('approveModal');
+        const rejectEl = document.getElementById('rejectModal');
+        const checkoutEl = document.getElementById('checkoutModal');
+        const returnEl = document.getElementById('returnModal');
+        if (approveEl) appModal = new bootstrap.Modal(approveEl);
+        if (rejectEl) rejModal = new bootstrap.Modal(rejectEl);
+        if (checkoutEl) checkoutModal = new bootstrap.Modal(checkoutEl);
+        if (returnEl) returnModal = new bootstrap.Modal(returnEl);
+    }
+
+    initModals();
+
+    function openApproveModal(id, studentName) {
+        document.getElementById('approve-student-name').innerText = studentName;
+        document.getElementById('approveForm').action = `/admin/requests/approve/${id}`;
+        document.getElementById('approve-remarks').value = '';
+        if (appModal) {
+            appModal.show();
+        } else {
+            console.error('approveModal is not initialized');
+        }
+    }
+
+    function openRejectModal(id, studentName) {
+        document.getElementById('reject-student-name').innerText = studentName;
+        document.getElementById('rejectForm').action = `/admin/requests/reject/${id}`;
+        document.getElementById('reject-remarks').value = '';
+        if (rejModal) {
+            rejModal.show();
+        } else {
+            console.error('rejectModal is not initialized');
+        }
+    }
+
+    function openCheckoutModal(id, projectorCode, studentName) {
+        document.getElementById('checkout-projector-code').innerText = projectorCode;
+        document.getElementById('checkout-student-name').innerText = studentName;
+        document.getElementById('checkout-received-by').value = studentName;
+        document.getElementById('checkoutForm').action = `/admin/requests/checkout/${id}`;
+        if (checkoutModal) {
+            checkoutModal.show();
+        } else {
+            console.error('checkoutModal is not initialized');
+        }
+    }
+
+    function openReturnModal(id, projectorCode) {
+        document.getElementById('return-projector-code').innerText = projectorCode;
+        document.getElementById('return-condition').value = '';
+        document.getElementById('returnForm').action = `/admin/requests/return/${id}`;
+        if (returnModal) {
+            returnModal.show();
+        } else {
+            console.error('returnModal is not initialized');
+        }
+    }
+
+    document.querySelectorAll('.js-approve-request').forEach((button) => {
+        button.addEventListener('click', () => {
+            openApproveModal(button.dataset.requestId, button.dataset.studentName);
+        });
+    });
+
+    document.querySelectorAll('.js-reject-request').forEach((button) => {
+        button.addEventListener('click', () => {
+            openRejectModal(button.dataset.requestId, button.dataset.studentName);
+        });
+    });
+
+    document.querySelectorAll('.js-checkout-request').forEach((button) => {
+        button.addEventListener('click', () => {
+            openCheckoutModal(button.dataset.requestId, button.dataset.projectorCode, button.dataset.studentName);
+        });
+    });
+
+    document.querySelectorAll('.js-return-request').forEach((button) => {
+        button.addEventListener('click', () => {
+            openReturnModal(button.dataset.requestId, button.dataset.projectorCode);
+        });
+    });
+</script>
+{% endblock %}

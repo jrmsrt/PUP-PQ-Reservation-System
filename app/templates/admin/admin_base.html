@@ -1,0 +1,106 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Admin Control Panel - PUP Reservation{% endblock %}
+
+{% block content %}
+<div class="admin-layout-wrapper d-flex w-100" style="height: 100vh; overflow: hidden; background-color: #F3F4F6;">
+    <!-- Collapsible Sidebar (Persistent via HTMX) -->
+    <div id="dash-sidebar" class="dash-sidebar" hx-boost="true" hx-target="#dash-main-content" hx-select="#dash-main-content" hx-swap="outerHTML">
+        <!-- Sidebar Navigation Wrapper -->
+        <div class="sidebar-nav-container d-flex flex-column flex-grow-1" style="overflow-y: auto;">
+            <div class="px-4 py-2 border-bottom d-flex align-items-center justify-content-between">
+                <span class="fw-bold text-maroon text-uppercase" style="font-size: 13px; letter-spacing: 0.5px;">Control Center</span>
+                <button id="sidebar-toggle" class="btn btn-sm text-muted p-0 border-0" title="Toggle Sidebar">
+                    <i class="fa-solid fa-angles-left fs-5" id="sidebar-toggle-icon"></i>
+                </button>
+            </div>
+            
+            <div class="d-flex flex-column mt-3">
+                <a href="{{ url_for('admin.dashboard') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.dashboard')) %}active{% endif %}">
+                    <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('admin.requests') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.requests')) %}active{% endif %}">
+                    <i class="fa-solid fa-bell-concierge"></i> <span>Requests Queue</span>
+                </a>
+                <a href="{{ url_for('admin.facilities') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.facilities')) %}active{% endif %}">
+                    <i class="fa-solid fa-door-open"></i> <span>AVR / Labs Rooms</span>
+                </a>
+                <a href="{{ url_for('admin.projectors') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.projectors')) %}active{% endif %}">
+                    <i class="fa-solid fa-video"></i> <span>Projector Management</span>
+                </a>
+                <a href="{{ url_for('admin.students') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.students')) %}active{% endif %}">
+                    <i class="fa-solid fa-address-book"></i> <span>User Directory</span>
+                </a>
+                <a href="{{ url_for('admin.calendar') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.calendar')) %}active{% endif %}">
+                    <i class="fa-regular fa-calendar-days"></i> <span>Booking Calendar</span>
+                </a>
+                <a href="{{ url_for('admin.reports') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.reports')) %}active{% endif %}">
+                    <i class="fa-solid fa-chart-line"></i> <span>Audit Reports</span>
+                </a>
+                <a href="{{ url_for('admin.ai_insights') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.ai_insights')) %}active{% endif %}" hx-boost="false">
+                    <i class="fa-solid fa-brain"></i> <span>AI Insights</span>
+                </a>
+                <a href="{{ url_for('admin.logs') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.logs')) %}active{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left"></i> <span>System Audit Logs</span>
+                </a>
+                <a href="{{ url_for('admin.settings') }}" class="sidebar-nav-item {% if request.path.startswith(url_for('admin.settings')) %}active{% endif %}">
+                    <i class="fa-solid fa-gears"></i> <span>Settings</span>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Pinned Logout Container -->
+        <div class="sidebar-logout-container mt-auto border-top py-2 bg-light">
+            <form action="{{ url_for('auth.logout') }}" method="POST" class="m-0" hx-boost="false">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="sidebar-nav-item text-danger fw-bold py-2 px-4 d-flex align-items-center gap-3 border-0 bg-transparent w-100 text-start" style="text-decoration: none;">
+                    <i class="fa-solid fa-right-from-bracket text-danger"></i> <span>Log Out</span>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Main Content Container -->
+    <div id="dash-main-content" class="dash-main-content flex-grow-1 position-relative" style="height: 100vh; overflow-y: auto;">
+        <!-- Main content starts directly -->
+        {% block admin_content %}{% endblock %}
+        {% block admin_js %}{% endblock %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+    function updateSidebarActive(path) {
+        if (!path) path = window.location.pathname;
+        document.querySelectorAll('.sidebar-nav-item').forEach(link => {
+            const href = link.getAttribute('href');
+            if(path.startsWith(href)) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+
+    // Update active class on sidebar links after htmx swap
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if(evt.detail.target.id === 'dash-main-content') {
+            let path = '';
+            if (evt.detail.pathInfo && evt.detail.pathInfo.requestPath) {
+                path = evt.detail.pathInfo.requestPath;
+            } else {
+                path = window.location.pathname;
+            }
+            updateSidebarActive(path);
+        }
+    });
+
+    // Update active class on history restore
+    document.body.addEventListener('htmx:historyRestore', function(evt) {
+        updateSidebarActive(window.location.pathname);
+    });
+</script>
+{% endblock %}

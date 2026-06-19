@@ -1,0 +1,167 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Settings - PUP Reservation{% endblock %}
+
+{% set active_page = 'settings' %}
+
+{% block admin_content %}
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">Administrative Profile Settings</h2>
+            <p class="text-muted mb-0 small">Update contact credentials and change security keys.</p>
+        </div>
+    </div>
+
+    <div class="row g-4 text-start" style="max-width: 900px; margin: 0 auto;">
+        <!-- Left details static card -->
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm p-4 text-center h-100" style="border-radius: 20px; background: #FFFFFF;">
+                <div class="verify-icon-container" style="background: #FEF2F2; color: var(--pup-maroon-bright); width: 80px; height: 80px; font-size: 32px;">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h4 class="fw-bold text-dark mt-3 mb-1">PUP Admin Account</h4>
+                <span class="badge bg-danger mb-4 px-3 py-2" style="border-radius: 30px;">
+                    <i class="fa-solid fa-shield-halved me-1"></i> System Administrator
+                </span>
+                
+                <hr class="w-100 mb-4">
+                
+                <div class="w-100">
+                    <div class="mb-3">
+                        <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Portal Name</small>
+                        <span class="text-dark fw-bold">PUP Parañaque Reservation</span>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">System Email</small>
+                        <span class="text-dark fw-bold" style="word-break: break-all;">admin@pup.edu.ph</span>
+                    </div>
+                    <div class="mb-0">
+                        <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">SMTP Sender Address</small>
+                        <span class="text-dark fw-bold" style="word-break: break-all;">thebookhaven.online@gmail.com</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right settings update form -->
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px; background: #FFFFFF;">
+                <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-gears text-maroon me-2"></i>Security Settings</h5>
+                <p class="text-muted small mb-4">Update contact details and set new administrative credentials.</p>
+                
+                <form method="POST" action="{{ url_for('admin.settings') }}" id="settings-form">
+                    {{ form.csrf_token }}
+                    
+                    <!-- Contact Number removed -->
+                    <h5 class="border-bottom pb-2 fw-bold text-dark mt-4 mb-3" style="font-size: 16px;"><i class="fa-solid fa-key me-2 text-muted"></i>Change Password (Optional)</h5>
+                    
+                    <!-- Current Password -->
+                    <div class="pup-form-group">
+                        <label class="pup-form-label" for="current_password">Current Password</label>
+                        <div class="pup-input-wrapper position-relative">
+                            <input type="password" id="current_password" name="current_password" class="pup-input pe-5 {% if current_password_error %}is-invalid{% endif %}" placeholder="Enter current password if changing">
+                            <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none toggle-password" tabindex="-1" style="z-index: 10;" aria-label="Show password">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+                        {% if current_password_error %}
+                            <div class="form-text text-danger mt-1 slide-error" style="font-size: 11px;">{{ current_password_error }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row g-3">
+                        <!-- New Password -->
+                        <div class="col-md-6">
+                            <div class="pup-form-group">
+                               <label class="pup-form-label" for="new_password">New Password</label>
+                               <div class="pup-input-wrapper position-relative">
+                                   <input type="password" id="new_password" name="new_password" class="pup-input pe-5 {% if new_password_error %}is-invalid{% endif %}" placeholder="At least 8 characters">
+                                   <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none toggle-password" tabindex="-1" style="z-index: 10;" aria-label="Show password">
+                                       <i class="fa-regular fa-eye"></i>
+                                   </button>
+                               </div>
+                               <div id="reuse-password-feedback" class="form-text text-danger mt-1 slide-error {% if not new_password_error %}is-hidden{% endif %}" style="font-size: 11px;">
+                                   {{ new_password_error or 'New password cannot be the same as your current password.' }}
+                               </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Confirm New Password -->
+                        <div class="col-md-6">
+                            <div class="pup-form-group">
+                               <label class="pup-form-label" for="confirm_new_password">Confirm New Password</label>
+                               <div class="pup-input-wrapper position-relative">
+                                   <input type="password" id="confirm_new_password" name="confirm_new_password" class="pup-input pe-5 {% if confirm_password_error %}is-invalid{% endif %}" placeholder="Re-enter new password" aria-describedby="confirm-password-feedback">
+                                   <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none shadow-none toggle-password" tabindex="-1" style="z-index: 10;" aria-label="Show password">
+                                       <i class="fa-regular fa-eye"></i>
+                                   </button>
+                               </div>
+                               <div id="confirm-password-feedback" class="form-text text-danger mt-1 slide-error {% if not confirm_password_error %}is-hidden{% endif %}" style="font-size: 11px;">
+                                   {{ confirm_password_error or 'Passwords should match.' }}
+                               </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="mt-4 text-end">
+                        <button type="submit" id="settings-submit-btn" class="btn btn-pup-primary px-5 py-3">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_js %}
+<script>
+    const form = document.getElementById('settings-form');
+    const newPasswordInput = document.getElementById('new_password');
+    const confirmPasswordInput = document.getElementById('confirm_new_password');
+    const currentPasswordInput = document.getElementById('current_password');
+    const confirmPasswordFeedback = document.getElementById('confirm-password-feedback');
+    const reusePasswordFeedback = document.getElementById('reuse-password-feedback');
+
+    function validatePasswordMatch() {
+        const hasPasswordChange = newPasswordInput.value || confirmPasswordInput.value;
+        const isMatch = !hasPasswordChange || newPasswordInput.value === confirmPasswordInput.value;
+        const reusesCurrentPassword = currentPasswordInput.value && newPasswordInput.value === currentPasswordInput.value;
+        confirmPasswordFeedback.classList.toggle('is-hidden', isMatch);
+        confirmPasswordInput.classList.toggle('is-invalid', !isMatch);
+        reusePasswordFeedback.classList.toggle('is-hidden', !reusesCurrentPassword);
+        newPasswordInput.classList.toggle('is-invalid', reusesCurrentPassword);
+        return isMatch && !reusesCurrentPassword;
+    }
+
+    document.querySelectorAll('.toggle-password').forEach((btn) => {
+        btn.addEventListener('click', function() {
+            const input = this.previousElementSibling;
+            const icon = this.querySelector('i');
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            icon.classList.toggle('fa-eye', !isHidden);
+            icon.classList.toggle('fa-eye-slash', isHidden);
+            this.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+    });
+
+    newPasswordInput.addEventListener('input', validatePasswordMatch);
+    confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+    currentPasswordInput.addEventListener('input', validatePasswordMatch);
+
+    if (form) {
+        form.addEventListener('submit', (event) => {
+            if (!validatePasswordMatch()) {
+                event.preventDefault();
+                confirmPasswordInput.focus();
+                return;
+            }
+            const btn = document.getElementById('settings-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving Settings...';
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,326 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Admin Dashboard - PUP Reservation{% endblock %}
+
+{% set active_page = 'dashboard' %}
+
+{% block admin_content %}
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">Administrative Dashboard</h2>
+            <p class="text-muted mb-0 small">Current usage statistics and resource reservation controls.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin.requests') }}" class="btn btn-pup-primary">
+                <i class="fa-solid fa-clipboard-list me-2"></i>Review Requests
+            </a>
+            <a href="{{ url_for('admin.reports') }}" class="btn btn-pup-secondary text-dark border-secondary">
+                <i class="fa-solid fa-download me-2"></i>Pull Report
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards Grid -->
+    <div class="row g-4 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Total Reservations</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val">{{ total }}</div>
+                    <div class="feature-icon-box m-0" style="background: #F3F4F6; color: #475569; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-cubes"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Pending Actions</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val text-warning">{{ pending }}</div>
+                    <div class="feature-icon-box m-0" style="background: #FFFBEB; color: #D97706; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Approved Bookings</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val text-success">{{ approved }}</div>
+                    <div class="feature-icon-box m-0" style="background: #ECFDF5; color: #059669; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="analytic-card text-start">
+                <div class="text-muted small fw-semibold mb-2">Active Users</div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="analytic-val text-primary">{{ active_users }}</div>
+                    <div class="feature-icon-box m-0" style="background: #E0F2FE; color: #0284C7; width: 40px; height: 40px; border-radius: 8px; font-size: 16px;">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Forecasting Banner -->
+    <div class="alert alert-success border-0 shadow-sm p-4 text-start mb-4" style="border-radius: 16px; background: #ECFDF5; border-left: 6px solid #10B981 !important;">
+        <div class="d-flex align-items-start gap-3">
+            <div class="feature-icon-box m-0" style="background: #D1FAE5; color: #059669; width: 48px; height: 48px; border-radius: 12px; font-size: 20px; flex-shrink:0;">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <div>
+                <h5 class="fw-bold text-success mb-1">AI Utilization Insights</h5>
+                <p class="mb-0 text-muted small"><strong>Peak Booking Window:</strong> {{ insights.peak_day }} has the highest current demand signal. Peak hours occur between <strong>{{ insights.peak_hour }}</strong>. {{ insights.forecast_alert }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row g-4 mb-4">
+        <!-- Monthly Trends Line Chart -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4 text-start">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-line me-2 text-maroon"></i>Monthly Reservation Trends</h6>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="monthlyTrendsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Facility Usage Pie Chart -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4 text-start">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-pie me-2 text-maroon"></i>Facility Distribution</h6>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="facilityUsageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Peak Booking Hours Bar Chart -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+                <div class="card-body p-4 text-start">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-bar me-2 text-maroon"></i>Occupancy by Hour (7:00 AM - 9:00 PM)</h6>
+                    <div style="height: 250px; position: relative;">
+                        <canvas id="peakHoursChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reservation Requests Table -->
+    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body p-4 text-start">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-question me-2 text-maroon"></i>New Reservation Requests Waiting for Action</h6>
+            {% if recent %}
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-3">ID</th>
+                                <th class="py-3">Student</th>
+                                <th class="py-3">Category</th>
+                                <th class="py-3">Schedule Date</th>
+                                <th class="py-3">Times</th>
+                                <th class="py-3">Status</th>
+                                <th class="py-3 text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in recent %}
+                                <tr>
+                                    <td class="fw-bold">#{{ r.id }}</td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">{{ r.student_name }}</div>
+                                        <span class="text-muted small" style="font-size: 11px;">{{ r.student_number }} | {{ r.program }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ r.resource_code }}</span>
+                                    </td>
+                                    <td>{{ r.schedule_date.strftime('%b %d, %Y') }}</td>
+                                    <td class="small">{{ r.start_time.strftime('%I:%M %p') }} - {{ r.end_time.strftime('%I:%M %p') }}</td>
+                                    <td>
+                                        {% if r.status == 'PENDING APPROVAL' %}
+                                            <span class="badge-status badge-pending">Pending</span>
+                                        {% elif r.status == 'APPROVED' %}
+                                            <span class="badge-status badge-approved">Approved</span>
+                                        {% elif r.status == 'REJECTED' %}
+                                            <span class="badge-status badge-rejected">Rejected</span>
+                                        {% else %}
+                                            <span class="badge-status badge-completed">{{ r.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('admin.requests') }}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px;">Manage</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-3">
+                    <p class="text-muted mb-0">No new requests in queue.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_js %}
+<script id="dashboard-chart-data" type="application/json">
+{
+    "facilitiesLabels": {{ insights.facility_utilization.keys() | list | tojson }},
+    "facilitiesData": {{ insights.facility_utilization.values() | list | tojson }},
+    "hoursOccupancy": {{ insights.hours_occupancy | tojson }},
+    "monthlyCounts": {{ insights.monthly_counts | tojson }}
+}
+</script>
+<script>
+    // Set dynamic properties passed from Python
+    var chartDataElement = document.getElementById('dashboard-chart-data');
+    var facilitiesLabels = [];
+    var facilitiesData = [];
+    var hoursOccupancy = {};
+    var monthlyCounts = [0,0,0,0,0,0,0,0,0,0,0,0];
+    
+    if (chartDataElement) {
+        try {
+            const chartData = JSON.parse(chartDataElement.textContent);
+            facilitiesLabels = chartData.facilitiesLabels;
+            facilitiesData = chartData.facilitiesData;
+            hoursOccupancy = chartData.hoursOccupancy;
+            if (chartData.monthlyCounts && chartData.monthlyCounts.length === 12) {
+                monthlyCounts = chartData.monthlyCounts;
+            }
+        } catch(e) {
+            console.error("Failed to parse chart data", e);
+        }
+    }
+    
+    function ensureChartJs() {
+        if (window.Chart) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[data-dashboard-chartjs]');
+            if (existing) {
+                existing.addEventListener('load', resolve, { once: true });
+                existing.addEventListener('error', reject, { once: true });
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            script.dataset.dashboardChartjs = 'true';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    function renderDashboardCharts() {
+    // 1. Monthly Trends Chart
+    const trendsCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
+    new Chart(trendsCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Reservations',
+                data: monthlyCounts,
+                borderColor: '#800000',
+                backgroundColor: 'rgba(128, 0, 0, 0.05)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#800000',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: '#F1F5F9' }, border: { dash: [5, 5] }, beginAtZero: true, ticks: { precision: 0 } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. Facility Usage Distribution Chart
+    const usageCtx = document.getElementById('facilityUsageChart').getContext('2d');
+    const hasFacilityData = facilitiesData.some(v => v > 0);
+    new Chart(usageCtx, {
+        type: 'doughnut',
+        data: {
+            labels: hasFacilityData ? facilitiesLabels : ['No reservations yet'],
+            datasets: [{
+                data: hasFacilityData ? facilitiesData : [1],
+                backgroundColor: ['#800000', '#D4AF37', '#0284C7', '#10B981'],
+                borderWidth: 2,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter' } } }
+            }
+        }
+    });
+
+    // 3. Peak Booking Hours Chart
+    const hoursCtx = document.getElementById('peakHoursChart').getContext('2d');
+    const hoursKeys = Object.keys(hoursOccupancy);
+    const hoursVals = Object.values(hoursOccupancy);
+    
+    new Chart(hoursCtx, {
+        type: 'bar',
+        data: {
+            labels: hoursKeys.map(h => {
+                const hour = parseInt(h);
+                return `${hour % 12 || 12}:00 ${hour < 12 ? 'AM' : 'PM'}`;
+            }),
+            datasets: [{
+                label: 'Active Bookings',
+                data: hoursVals,
+                backgroundColor: '#D4AF37',
+                hoverBackgroundColor: '#800000',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: '#F1F5F9' }, border: { dash: [5, 5] } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    }
+
+    ensureChartJs()
+        .then(renderDashboardCharts)
+        .catch(() => {
+            if (window.showToast) {
+                showToast("Dashboard Error", "Unable to load dashboard charts.", "error");
+            }
+        });
+</script>
+{% endblock %}

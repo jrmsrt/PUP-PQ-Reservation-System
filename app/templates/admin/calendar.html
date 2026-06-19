@@ -1,0 +1,217 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Booking Calendar - PUP Reservation{% endblock %}
+
+{% set active_page = 'calendar' %}
+
+{% block admin_content %}
+<style>
+    @import url("https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css");
+</style>
+<style>
+    .fc {
+        font-family: 'Inter', sans-serif;
+    }
+    .fc-header-toolbar {
+        margin-bottom: 20px !important;
+    }
+    .fc-button-primary {
+        background-color: var(--pup-maroon-bright) !important;
+        border-color: var(--pup-maroon-bright) !important;
+    }
+    .fc-button-primary:hover {
+        background-color: var(--pup-maroon-hover) !important;
+        border-color: var(--pup-maroon-hover) !important;
+    }
+    .fc-button-active {
+        background-color: var(--pup-maroon-hover) !important;
+        border-color: var(--pup-maroon-hover) !important;
+    }
+    .fc-event {
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 4px;
+    }
+</style>
+<div class="container-fluid px-0 animated-fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="text-start">
+            <h2 class="fw-bold text-dark mb-1">Monthly Schedule Calendar</h2>
+            <p class="text-muted mb-0 small">Visual calendar of all reservation schedules by approval status.</p>
+        </div>
+    </div>
+
+    <!-- Calendar Card Container -->
+    <div class="card border-0 shadow-sm p-4" style="border-radius: 16px;">
+        <div class="card-body p-0">
+            <!-- Calendar target element -->
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <!-- Status Legend -->
+    <div class="d-flex gap-3 mt-3 flex-wrap">
+        <span class="d-flex align-items-center gap-2 small"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#059669;"></span> Approved</span>
+        <span class="d-flex align-items-center gap-2 small"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#D97706;"></span> Pending</span>
+        <span class="d-flex align-items-center gap-2 small"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#DC2626;"></span> Rejected</span>
+        <span class="d-flex align-items-center gap-2 small"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#0284C7;"></span> Completed</span>
+        <span class="d-flex align-items-center gap-2 small"><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#6B7280;"></span> Cancelled</span>
+    </div>
+</div>
+
+<!-- Booking Details Modal -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 16px;">
+            <div class="modal-header bg-maroon text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                <h5 class="modal-title fw-bold" id="eventDetailsModalLabel"><i class="fa-solid fa-circle-info text-gold me-2"></i>Booking Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-start p-4">
+                <div class="mb-3">
+                    <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Resource Reserved</small>
+                    <h5 id="modal-event-title" class="fw-bold text-dark mb-0"></h5>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Student</small>
+                    <span id="modal-event-student" class="text-dark fw-semibold"></span>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Program, Year &amp; Section</small>
+                    <span id="modal-event-program-section" class="text-dark fw-semibold"></span>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Subject / Class</small>
+                    <span id="modal-event-course" class="text-dark fw-semibold"></span>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Professor</small>
+                    <span id="modal-event-professor" class="text-dark fw-semibold"></span>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Schedule Time</small>
+                    <span id="modal-event-schedule" class="text-dark fw-semibold"></span>
+                </div>
+                
+                <div class="mb-0">
+                    <small class="text-muted d-block fw-semibold" style="font-size: 11px; text-transform: uppercase;">Status</small>
+                    <span id="modal-event-status" class="badge bg-secondary"></span>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-pup-secondary border border-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block admin_js %}
+<script>
+    (function() {
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            if (!calendarEl) return;
+            
+            if (typeof FullCalendar === 'undefined' || typeof bootstrap === 'undefined') {
+                console.log('Libraries not loaded yet, deferring calendar initialization...');
+                document.addEventListener('DOMContentLoaded', initCalendar);
+                return;
+            }
+            
+            if (calendarEl.classList.contains('fc')) {
+                console.log('Calendar already initialized');
+                return;
+            }
+            
+            const detailsModal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
+            
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listMonth'
+                },
+                editable: false,
+                selectable: false,
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    const params = new URLSearchParams({
+                        start: fetchInfo.startStr,
+                        end: fetchInfo.endStr
+                    });
+
+                    fetch(`/admin/calendar/events?${params.toString()}`)
+                        .then(response => {
+                            if (response.status === 401) {
+                                window.location.href = "{{ url_for('auth.login') }}";
+                                return null;
+                            }
+                            if (!response.ok) {
+                                throw new Error('Calendar request failed');
+                            }
+                            return response.json();
+                        })
+                        .then(events => {
+                            if (events) successCallback(events);
+                        })
+                        .catch(error => {
+                            if (window.showToast) {
+                                showToast("Calendar Error", "Unable to load booking schedules.", "error");
+                            }
+                            failureCallback(error);
+                        });
+                },
+                eventClick: function(info) {
+                    // Prepopulate modal values
+                    document.getElementById('modal-event-title').innerText = info.event.title;
+                    document.getElementById('modal-event-student').innerText = info.event.extendedProps.student;
+                    document.getElementById('modal-event-course').innerText = info.event.extendedProps.course;
+                    document.getElementById('modal-event-professor').innerText = info.event.extendedProps.professor;
+
+                    // Program + Year & Section
+                    const prog = info.event.extendedProps.program || '';
+                    const yrSec = info.event.extendedProps.year_section || '';
+                    document.getElementById('modal-event-program-section').innerText = [prog, yrSec].filter(Boolean).join(' ') || 'N/A';
+                    
+                    // Format dates
+                    const start = new Date(info.event.start);
+                    const end = new Date(info.event.end);
+                    
+                    const timeString = `${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                    const dateString = `${start.toLocaleDateString([], {month: 'long', day: 'numeric', year: 'numeric'})} (${timeString})`;
+                    
+                    document.getElementById('modal-event-schedule').innerText = dateString;
+                    
+                    const status = info.event.extendedProps.status;
+                    const statusBadge = document.getElementById('modal-event-status');
+                    statusBadge.innerText = status;
+                    const statusMap = {
+                        'APPROVED': 'bg-success',
+                        'PENDING APPROVAL': 'bg-warning text-dark',
+                        'REJECTED': 'bg-danger',
+                        'CANCELLED': 'bg-secondary',
+                        'COMPLETED': 'bg-primary'
+                    };
+                    statusBadge.className = 'badge ' + (statusMap[status] || 'bg-secondary');
+                    
+                    detailsModal.show();
+                }
+            });
+            
+            calendar.render();
+            
+            window.addEventListener('resize', () => {
+                calendar.updateSize();
+            });
+        }
+        
+        initCalendar();
+    })();
+</script>
+{% endblock %}

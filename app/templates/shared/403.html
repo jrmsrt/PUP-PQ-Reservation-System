@@ -1,0 +1,16 @@
+{% extends "shared/base.html" %}
+
+{% block title %}403 Forbidden - PUP Reservation{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-5 text-center animated-fade-in">
+    <div class="verify-card py-5">
+        <div class="verify-icon-container">
+            <i class="fa-solid fa-ban"></i>
+        </div>
+        <h1 class="fw-bold text-danger mb-3">403 - Access Denied</h1>
+        <p class="lead text-muted mb-4">You do not have the permission to access this page.</p>
+        <a href="/" class="btn btn-pup-primary px-4 py-2">Return to Homepage</a>
+    </div>
+</div>
+{% endblock %}
