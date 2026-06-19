@@ -272,7 +272,6 @@ def init_db():
             details TEXT NOT NULL,
             ip_address VARCHAR(45) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(admin_username) REFERENCES admin(username) ON DELETE SET NULL,
             FOREIGN KEY(student_id) REFERENCES authorized_users(id) ON DELETE SET NULL
         ) ENGINE=InnoDB
     ''')

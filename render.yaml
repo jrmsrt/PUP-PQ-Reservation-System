@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: pup-pq-reservation-system
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: FLASK_DEBUG
+        value: false
+      - key: SESSION_COOKIE_SECURE
+        value: true
+      - key: SESSION_COOKIE_SAMESITE
+        value: Lax
+      - key: DB_CREATE_DATABASE
+        value: false

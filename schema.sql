@@ -132,9 +132,6 @@ CREATE TABLE IF NOT EXISTS `system_logs` (
     `details` TEXT NOT NULL,
     `ip_address` VARCHAR(45) NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT `fk_log_admin`
-        FOREIGN KEY (`admin_username`) REFERENCES `admin` (`username`)
-        ON DELETE SET NULL,
     CONSTRAINT `fk_log_student`
         FOREIGN KEY (`student_id`) REFERENCES `authorized_users` (`id`)
         ON DELETE SET NULL,
