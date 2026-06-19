@@ -36,6 +36,23 @@ import os
 from email.mime.text import MIMEText
 from email.utils import make_msgid, formatdate
 
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+def _open_smtp_connection(mail_server, mail_port):
+    if _env_bool('MAIL_USE_SSL', False):
+        server = smtplib.SMTP_SSL(mail_server, mail_port, timeout=20)
+    else:
+        server = smtplib.SMTP(mail_server, mail_port, timeout=20)
+        server.ehlo()
+        if _env_bool('MAIL_USE_TLS', True):
+            server.starttls()
+            server.ehlo()
+    return server
+
 def _send_otp_email_sync(recipient_email, otp):
     recipient_email = recipient_email.strip()
     mail_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -62,11 +79,7 @@ def _send_otp_email_sync(recipient_email, otp):
     
     try:
         import sys
-        # Connect with a 10-second timeout to prevent blocking indefinitely
-        server = smtplib.SMTP(mail_server, mail_port, timeout=10)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
+        server = _open_smtp_connection(mail_server, mail_port)
         server.login(mail_username, mail_password)
         server.sendmail(mail_sender, [recipient_email], msg.as_string())
         server.close()
@@ -80,8 +93,12 @@ def _send_otp_email_sync(recipient_email, otp):
         return False
 
 def send_otp_email_async(recipient_email, otp):
+    if os.environ.get('RENDER') or _env_bool('MAIL_SEND_SYNC', True):
+        return _send_otp_email_sync(recipient_email, otp)
     thread = threading.Thread(target=_send_otp_email_sync, args=(recipient_email, otp))
+    thread.daemon = True
     thread.start()
+    return True
 
 def _send_notification_email_sync(recipient_email, subject, body):
     recipient_email = recipient_email.strip()
@@ -106,10 +123,7 @@ def _send_notification_email_sync(recipient_email, subject, body):
     
     try:
         import sys
-        server = smtplib.SMTP(mail_server, mail_port, timeout=10)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
+        server = _open_smtp_connection(mail_server, mail_port)
         server.login(mail_username, mail_password)
         server.sendmail(mail_sender, [recipient_email], msg.as_string())
         server.close()
@@ -123,8 +137,12 @@ def _send_notification_email_sync(recipient_email, subject, body):
         return False
 
 def send_notification_email_async(recipient_email, subject, body):
+    if os.environ.get('RENDER') or _env_bool('MAIL_SEND_SYNC', True):
+        return _send_notification_email_sync(recipient_email, subject, body)
     thread = threading.Thread(target=_send_notification_email_sync, args=(recipient_email, subject, body))
+    thread.daemon = True
     thread.start()
+    return True
 
 LOWERCASE_WORDS = {
     'the', 'on', 'in', 'of', 'or', 'to', 'and', 'at'
@@ -951,8 +969,9 @@ def login():
                 
             otp = generate_and_save_otp(user_record['user_id'])
             
-            # Send actual OTP email
-            send_otp_email_async(email, otp)
+            if not send_otp_email_async(email, otp):
+                flash("The email provider did not accept the OTP message. Please contact the administrator.", "danger")
+                return render_template('auth/login.html', form=MockForm(email=email))
             
             log_event(user_record['user_id'], "OTP REQUEST", "Generated secure OTP and sent email verification code.")
             flash("An OTP verification code has been sent to your PUP Webmail.", "info")
@@ -1000,7 +1019,8 @@ def forgot_password():
             return render_template('auth/forgot_password.html', form=MockForm(), error_msg="Maximum OTP requests per hour exceeded. Please try again later.")
             
         otp = generate_and_save_otp(user_record['user_id'])
-        send_otp_email_async(email, otp)
+        if not send_otp_email_async(email, otp):
+            return render_template('auth/forgot_password.html', form=MockForm(), error_msg="The email provider did not accept the password reset OTP. Please contact the administrator.")
         
         log_event(user_record['user_id'], "FORGOT PASSWORD OTP", "Requested password reset OTP.")
         flash("A password reset OTP verification code has been sent to your PUP Webmail.", "info")
@@ -1079,8 +1099,9 @@ def resend_otp():
     email = cursor.fetchone()['pup_email']
     conn.close()
     
-    # Send actual OTP email
-    send_otp_email_async(email, otp)
+    if not send_otp_email_async(email, otp):
+        flash("The email provider did not accept the new OTP message. Please contact the administrator.", "danger")
+        return redirect(url_for('auth.verify_otp'))
     
     log_event(user_id, "OTP RESEND", "Resent secure OTP and sent email verification code.")
     flash("A new OTP code has been sent.", "info")
