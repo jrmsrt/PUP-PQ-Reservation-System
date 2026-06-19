@@ -53,6 +53,48 @@ def _open_smtp_connection(mail_server, mail_port):
             server.ehlo()
     return server
 
+def _send_brevo_api_email(recipient_email, subject, body):
+    api_key = os.environ.get('BREVO_API_KEY')
+    if not api_key:
+        return None
+
+    mail_sender = os.environ.get('MAIL_DEFAULT_SENDER') or os.environ.get('MAIL_USERNAME')
+    sender_name = os.environ.get('MAIL_SENDER_NAME', 'PUP Reservation System')
+    if not mail_sender:
+        print("BREVO_API_KEY is configured, but MAIL_DEFAULT_SENDER is missing.", flush=True)
+        return False
+
+    payload = {
+        'sender': {'name': sender_name, 'email': mail_sender},
+        'to': [{'email': recipient_email.strip()}],
+        'subject': subject,
+        'textContent': body
+    }
+    req = urllib.request.Request(
+        'https://api.brevo.com/v3/smtp/email',
+        data=json.dumps(payload).encode('utf-8'),
+        headers={
+            'accept': 'application/json',
+            'api-key': api_key,
+            'content-type': 'application/json'
+        },
+        method='POST'
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            print(f"Brevo API email accepted for {recipient_email}: HTTP {response.status}", flush=True)
+            return 200 <= response.status < 300
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode('utf-8', errors='replace')
+        print(f"Brevo API rejected email to {recipient_email}: HTTP {e.code} {error_body}", flush=True)
+        return False
+    except Exception as e:
+        import sys, traceback
+        print(f"Brevo API email error for {recipient_email}: {e}", flush=True)
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        return False
+
 def _send_otp_email_sync(recipient_email, otp):
     recipient_email = recipient_email.strip()
     mail_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -69,6 +111,9 @@ def _send_otp_email_sync(recipient_email, otp):
     
     subject = "PUP Reservation System OTP Verification"
     body = f"Hello,\n\nYour One-Time Password (OTP) for accessing the PUP Reservation System is:\n\n{otp}\n\nThis code will expire in 5 minutes.\n\nIf you did not request this code, please ignore this email.\n\nThank you."
+    brevo_result = _send_brevo_api_email(recipient_email, subject, body)
+    if brevo_result is not None:
+        return brevo_result
     
     msg = MIMEText(body)
     msg['Subject'] = subject
@@ -102,6 +147,10 @@ def send_otp_email_async(recipient_email, otp):
 
 def _send_notification_email_sync(recipient_email, subject, body):
     recipient_email = recipient_email.strip()
+    brevo_result = _send_brevo_api_email(recipient_email, subject, body)
+    if brevo_result is not None:
+        return brevo_result
+
     mail_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     try:
         mail_port = int(os.environ.get('MAIL_PORT', 587))

@@ -1,5 +1,6 @@
 import pymysql
 import os
+import re
 import secrets
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,7 +14,9 @@ if os.path.exists(dotenv_path):
             line = line.strip()
             if line and not line.startswith('#') and '=' in line:
                 key, val = line.split('=', 1)
-                os.environ[key.strip()] = val.strip()
+                key = key.strip()
+                if re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
+                    os.environ[key] = val.strip()
 
 class MySQLRow:
     def __init__(self, description, row_tuple):
@@ -94,6 +97,8 @@ def get_db_connection():
     db_password = os.environ.get('DB_PASSWORD')
     db_name = os.environ.get('DB_NAME', 'pup_reservation')
     create_database = os.environ.get('DB_CREATE_DATABASE', 'false').lower() == 'true'
+    use_ssl = os.environ.get('DB_SSL', 'false').lower() == 'true'
+    ssl_config = {'ssl': {}} if use_ssl else {}
 
     if not db_password:
         raise RuntimeError("DB_PASSWORD must be set before connecting to MySQL.")
@@ -105,7 +110,8 @@ def get_db_connection():
             user=db_user,
             password=db_password,
             database=db_name,
-            charset='utf8mb4'
+            charset='utf8mb4',
+            **ssl_config
         )
     except pymysql.err.OperationalError as exc:
         if not create_database:
@@ -115,7 +121,8 @@ def get_db_connection():
             port=db_port,
             user=db_user,
             password=db_password,
-            charset='utf8mb4'
+            charset='utf8mb4',
+            **ssl_config
         )
         cursor = conn.cursor()
         cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")

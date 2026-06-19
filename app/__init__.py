@@ -1,5 +1,6 @@
 from flask import Flask, session, request, g, render_template
 import os
+import re
 from datetime import datetime
 from flask_wtf.csrf import CSRFProtect
 
@@ -12,7 +13,9 @@ def create_app():
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, val = line.split('=', 1)
-                    os.environ[key.strip()] = val.strip()
+                    key = key.strip()
+                    if re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', key):
+                        os.environ[key] = val.strip()
 
     app = Flask(__name__, template_folder='templates', static_folder='static')
     secret_key = os.environ.get('FLASK_SECRET_KEY')
